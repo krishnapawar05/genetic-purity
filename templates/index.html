@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Purity Testing Interface</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Load Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header Section -->
+        <header class="app-header">
+            <span class="project-tag">Computer Vision Inference</span>
+            <h1 class="main-title">Plant Purity Testing Interface</h1>
+            <p class="subtitle">AI-Assisted Genetic Purity Prediction Using Morphological Features of Germinated Plants</p>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-main">
+            <!-- Upload Section Card -->
+            <section class="card upload-card">
+                <div class="card-header">
+                    <h2>Upload Plant Specimen</h2>
+                    <p class="card-desc">Select or drag an image of a germinated plant leaf/stem for analysis.</p>
+                </div>
+                
+                <div id="dropZone" class="drop-zone">
+                    <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg, image/bmp, image/webp" style="display: none;">
+                    
+                    <div id="uploadPrompt" class="upload-prompt">
+                        <div class="upload-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 16V8M12 8L9 11M12 8L15 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3 15V16C3 18.2091 4.79086 20 7 20H17C19.2091 20 21 18.2091 21 16V15M3 9V8C3 5.79086 4.79086 4 7 4H17C19.2091 4 21 5.79086 21 8V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <p class="prompt-text">Drag and drop plant image here</p>
+                        <span class="prompt-or">or</span>
+                        <button type="button" id="browseBtn" class="btn btn-secondary">Browse Image</button>
+                    </div>
+
+                    <!-- Image Preview Element -->
+                    <div id="previewContainer" class="preview-container" style="display: none;">
+                        <img id="imagePreview" src="" alt="Plant specimen preview">
+                        <button type="button" id="removeBtn" class="remove-btn" title="Remove image">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error Messages Box -->
+                <div id="errorAlert" class="error-alert" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 9V14M12 17.01H12.01M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="errorText">Error message goes here</span>
+                </div>
+
+                <!-- Analyze Button Trigger -->
+                <div id="actionArea" class="action-area" style="display: none;">
+                    <button type="button" id="analyzeBtn" class="btn btn-primary btn-block">
+                        <span id="btnText">Analyze Plant Specimen</span>
+                        <div id="btnSpinner" class="spinner" style="display: none;"></div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Results Section Card -->
+            <section id="resultsCard" class="card results-card" style="display: none;">
+                <div class="card-header">
+                    <div class="results-header-flex">
+                        <div>
+                            <h2>Analysis Diagnostics</h2>
+                            <p class="card-desc">Comprehensive genetic purity and class breakdown reports.</p>
+                        </div>
+                        <div id="purityBadge" class="status-badge">
+                            <span>Determining...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-grid">
+                    <!-- Left Column: Visual Chart -->
+                    <div class="chart-column">
+                        <div class="chart-wrapper">
+                            <canvas id="purityChart"></canvas>
+                        </div>
+                        <div class="chart-legend-box">
+                            <div class="legend-item">
+                                <span class="dot dot-pure"></span>
+                                <span class="legend-label">Pure Confidence</span>
+                                <span id="legendPureVal" class="legend-val">0%</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="dot dot-impure"></span>
+                                <span class="legend-label">Impure Confidence</span>
+                                <span id="legendImpureVal" class="legend-val">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Details & Probabilities -->
+                    <div class="details-column">
+                        <!-- Key Metrics Grid -->
+                        <div class="metrics-grid">
+                            <div class="metric-tile">
+                                <span class="metric-label">Predicted Class</span>
+                                <span id="resPredictedClass" class="metric-value">-</span>
+                            </div>
+                            <div class="metric-tile">
+                                <span class="metric-label">Classification Confidence</span>
+                                <span id="resConfidence" class="metric-value">-</span>
+                            </div>
+                            <div class="metric-tile">
+                                <span class="metric-label">Inference Speed</span>
+                                <span id="resTime" class="metric-value">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Class Probability Progress Bars -->
+                        <div class="probabilities-section">
+                            <h3>Morphological Class Distributions</h3>
+                            
+                            <div class="prob-row">
+                                <div class="prob-labels">
+                                    <span class="class-name">Female Specimen</span>
+                                    <span id="probFemaleVal" class="class-percentage">0%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div id="probFemaleBar" class="progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="prob-row">
+                                <div class="prob-labels">
+                                    <span class="class-name">Hybrid Target</span>
+                                    <span id="probHybridVal" class="class-percentage">0%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div id="probHybridBar" class="progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="prob-row">
+                                <div class="prob-labels">
+                                    <span class="class-name">Male Specimen</span>
+                                    <span id="probMaleVal" class="class-percentage">0%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div id="probMaleBar" class="progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Textual Decision Summary -->
+                        <div class="decision-reason-box">
+                            <h4>Decision Rationale</h4>
+                            <p id="resReason" class="reason-text">No data loaded.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer-bar">
+            <p>&copy; 2026 Plant Genetics Classification Project. Headless inference engine powered by MobileNet backend.</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

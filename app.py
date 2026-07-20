@@ -33,7 +33,7 @@ app.debug = True
 # Demo Mode Configuration
 # "online" : Server functions normally.
 # "offline": Simulates server outage (returns 503 Service Unavailable).
-SERVER_STATUS = "online"
+SERVER_STATUS = "offline"
 
 
 # Configure upload directory

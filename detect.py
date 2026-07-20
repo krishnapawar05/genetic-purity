@@ -104,6 +104,41 @@ def validate_image(image_path):
         sys.exit(1)
 
 
+def focus_only_on_plant(img_array):
+    """
+    Given an RGB NumPy array representing an image,
+    blacks out any pixel that does not belong to the seedling.
+    """
+    try:
+        import cv2
+        # Convert RGB to BGR for OpenCV
+        img_uint8 = img_array.astype(np.uint8)
+        img_bgr = cv2.cvtColor(img_uint8, cv2.COLOR_RGB2BGR)
+        hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+        
+        # Green leaves
+        lower_green = np.array([20, 20, 15])
+        upper_green = np.array([100, 255, 255])
+        mask_green = cv2.inRange(hsv, lower_green, upper_green)
+        
+        # Stem (purple/maroon/red)
+        lower_stem1 = np.array([0, 20, 15])
+        upper_stem1 = np.array([25, 255, 255])
+        mask_stem1 = cv2.inRange(hsv, lower_stem1, upper_stem1)
+        
+        lower_stem2 = np.array([115, 20, 15])
+        upper_stem2 = np.array([180, 255, 255])
+        mask_stem2 = cv2.inRange(hsv, lower_stem2, upper_stem2)
+        
+        plant_mask = mask_green | mask_stem1 | mask_stem2
+        
+        clean_img = np.zeros_like(img_array)
+        clean_img[plant_mask > 0] = img_array[plant_mask > 0]
+        return clean_img
+    except Exception:
+        return img_array
+
+
 def preprocess_image(image_path):
     """
     Applies the exact preprocessing pipeline used during model training:
@@ -111,6 +146,7 @@ def preprocess_image(image_path):
     - Converts to RGB
     - Resizes to 224 x 224 using Bilinear interpolation
     - Converts to NumPy array
+    - Focuses only on the plant (forces background to pure black)
     - Expands dimensions to (1, 224, 224, 3)
     - Applies MobileNet preprocess_input
     """
@@ -128,6 +164,8 @@ def preprocess_image(image_path):
             img_resized = img_rgb.resize(IMAGE_SIZE, resample_filter)
             # Convert to NumPy array (float32 to match training tensor types)
             img_array = np.array(img_resized, dtype=np.float32)
+            # Apply plant focusing filter to clean the background
+            img_array = focus_only_on_plant(img_array)
             # Expand dimensions to create batch size of 1
             img_expanded = np.expand_dims(img_array, axis=0)
             # Apply MobileNet-specific preprocessing
@@ -182,14 +220,14 @@ def validate_morphology(image_path):
         hsv = cv2.cvtColor(img_224, cv2.COLOR_BGR2HSV)
         
         # Green / Yellow-Green (Target seedling leaves/stems)
-        lower_green = np.array([25, 30, 30])
-        upper_green = np.array([90, 255, 255])
+        lower_green = np.array([20, 20, 15])
+        upper_green = np.array([100, 255, 255])
         mask_green = cv2.inRange(hsv, lower_green, upper_green)
         green_pct = np.sum(mask_green > 0) / mask_green.size
         
         # Purple / Magenta (Non-target species / purple leaves / synthetic drawing lines)
-        lower_purple = np.array([125, 30, 30])
-        upper_purple = np.array([170, 255, 255])
+        lower_purple = np.array([115, 20, 15])
+        upper_purple = np.array([180, 255, 255])
         mask_purple = cv2.inRange(hsv, lower_purple, upper_purple)
         purple_pct = np.sum(mask_purple > 0) / mask_purple.size
 
@@ -229,7 +267,7 @@ def validate_morphology(image_path):
             return False, f"Non-target species detected: contains significant purple morphological features ({purple_pct * 100:.2f}%)."
             
         # Rule 3: Plant/Seedling presence check
-        if green_pct < 0.003:
+        if green_pct < 0.002:
             return False, f"No germinated plant specimen detected in the image (green pixel ratio: {green_pct * 100:.2f}%)."
 
         # Rule 4: Document/unwanted image detection (Aadhaar cards, ID cards, books, text sheets)

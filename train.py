@@ -198,6 +198,59 @@ def load_dataset(data_dir, image_size=IMAGE_SIZE, batch_size=BATCH_SIZE, shuffle
     return dataset, dataset.class_names
 
 
+def focus_only_on_plant(img_array):
+    """
+    Given an RGB NumPy array representing an image,
+    blacks out any pixel that does not belong to the seedling.
+    """
+    try:
+        import cv2
+        img_uint8 = img_array.astype(np.uint8)
+        img_bgr = cv2.cvtColor(img_uint8, cv2.COLOR_RGB2BGR)
+        hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+        
+        # Green leaves
+        lower_green = np.array([20, 20, 15])
+        upper_green = np.array([100, 255, 255])
+        mask_green = cv2.inRange(hsv, lower_green, upper_green)
+        
+        # Stem (purple/maroon/red)
+        lower_stem1 = np.array([0, 20, 15])
+        upper_stem1 = np.array([25, 255, 255])
+        mask_stem1 = cv2.inRange(hsv, lower_stem1, upper_stem1)
+        
+        lower_stem2 = np.array([115, 20, 15])
+        upper_stem2 = np.array([180, 255, 255])
+        mask_stem2 = cv2.inRange(hsv, lower_stem2, upper_stem2)
+        
+        plant_mask = mask_green | mask_stem1 | mask_stem2
+        
+        clean_img = np.zeros_like(img_array)
+        clean_img[plant_mask > 0] = img_array[plant_mask > 0]
+        return clean_img
+    except Exception:
+        return img_array
+
+
+def tf_focus_only_on_plant(images, labels):
+    """
+    TensorFlow dataset mapping function wrapper for focus_only_on_plant.
+    """
+    def _focus(imgs):
+        cleaned_imgs = np.zeros_like(imgs)
+        for i in range(imgs.shape[0]):
+            cleaned_imgs[i] = focus_only_on_plant(imgs[i])
+        return cleaned_imgs
+
+    cleaned_images = tf.py_function(
+        func=_focus,
+        inp=[images],
+        Tout=tf.float32
+    )
+    cleaned_images.set_shape(images.shape)
+    return cleaned_images, labels
+
+
 def preprocess_dataset(dataset, is_training=True):
     """
     Preprocesses and optimizes the tf.data.Dataset pipeline.
@@ -218,6 +271,12 @@ def preprocess_dataset(dataset, is_training=True):
         tf.data.Dataset: The preprocessed and optimized dataset.
     """
     try:
+        # Standardise background to absolute black [0,0,0] by extracting seedling colors
+        dataset = dataset.map(
+            tf_focus_only_on_plant,
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
+
         if is_training:
             # Data augmentation sequential block applied only on the training set
             data_augmentation = tf.keras.Sequential([
@@ -308,7 +367,9 @@ def build_model(input_shape=(224, 224, 3), num_classes=3, learning_rate=LEARNING
 
 def train_model(model, train_ds, val_ds, epochs=EPOCHS):
     """
-    Fits the model on the training dataset while validating on the validation dataset.
+    Fits the model using a two-stage training loop:
+    1. Stage 1: Train classification head with backbone frozen.
+    2. Stage 2: Unfreeze backbone and fine-tune with a low learning rate.
     
     Args:
         model (tf.keras.Model): The compiled Keras model.
@@ -317,17 +378,47 @@ def train_model(model, train_ds, val_ds, epochs=EPOCHS):
         epochs (int): Number of epochs.
         
     Returns:
-        tf.keras.callbacks.History: Training history object.
+        tf.keras.callbacks.History: Combined training history object.
     """
     try:
-        # Train model with progress displayed
-        history = model.fit(
+        logger.info(f"Stage 1: Training classifier head (backbone frozen) for {epochs} epochs...")
+        history_stage1 = model.fit(
             train_ds,
             validation_data=val_ds,
             epochs=epochs,
             verbose=1
         )
-        return history
+        
+        # Unfreeze backbone (excluding BatchNormalization)
+        logger.info("Unfreezing MobileNet backbone (excluding BatchNormalization) for Stage 2 fine-tuning...")
+        base_model = model.layers[0]
+        base_model.trainable = True
+        for layer in base_model.layers:
+            if 'BatchNormalization' in layer.__class__.__name__:
+                layer.trainable = False
+        
+        # Recompile model with low learning rate
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+            loss=tf.keras.losses.CategoricalCrossentropy(),
+            metrics=['accuracy']
+        )
+        
+        fine_tune_epochs = 10
+        logger.info(f"Stage 2: Fine-tuning entire network for {fine_tune_epochs} additional epochs...")
+        history_stage2 = model.fit(
+            train_ds,
+            validation_data=val_ds,
+            epochs=epochs + fine_tune_epochs,
+            initial_epoch=epochs,
+            verbose=1
+        )
+        
+        # Combine history dictionaries
+        for key in history_stage1.history.keys():
+            history_stage1.history[key].extend(history_stage2.history[key])
+            
+        return history_stage1
     except Exception as e:
         logger.error(f"Error during model training: {str(e)}")
         raise

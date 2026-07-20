@@ -338,6 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // SERVER STATUS CHECK PIPELINE
     // ==============================================================================
     const statusBadge = document.getElementById("serverStatusBadge");
+    let isServerOnline = true;
 
     function checkServerStatus() {
         const controller = new AbortController();
@@ -352,9 +353,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error("Server response not OK");
             })
             .then(data => {
-                if (data.status === "healthy") {
-                    statusBadge.textContent = "🟢 ONLINE";
-                    statusBadge.className = "project-tag status-online";
+                if (data.status === "online" || data.status === "healthy") {
+                    setOnlineState();
                 } else {
                     setOfflineState();
                 }
@@ -365,10 +365,42 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
-    // Set fallback offline state
+    function setOnlineState() {
+        isServerOnline = true;
+        statusBadge.textContent = "🟢 ONLINE";
+        statusBadge.className = "project-tag status-online";
+        
+        // Re-enable UI components
+        dropZone.classList.remove("disabled");
+        browseBtn.classList.remove("disabled");
+        browseBtn.disabled = false;
+        analyzeBtn.classList.remove("disabled");
+        analyzeBtn.disabled = false;
+        
+        // If the offline message is currently visible, hide it
+        if (errorText.textContent === "Prediction service is currently unavailable. Please try again later.") {
+            hideError();
+        }
+    }
+
     function setOfflineState() {
+        isServerOnline = false;
         statusBadge.textContent = "🔴 OFFLINE";
         statusBadge.className = "project-tag status-offline";
+        
+        // Disable UI components
+        dropZone.classList.add("disabled");
+        browseBtn.classList.add("disabled");
+        browseBtn.disabled = true;
+        analyzeBtn.classList.add("disabled");
+        analyzeBtn.disabled = true;
+        
+        // Reset current file selection
+        clearFileState();
+        hideResults();
+        
+        // Display friendly offline notice
+        showError("Prediction service is currently unavailable. Please try again later.");
     }
 
     // Run initial health check immediately

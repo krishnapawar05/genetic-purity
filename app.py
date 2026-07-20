@@ -24,6 +24,12 @@ app = Flask(__name__)
 app.debug = True
 
 
+# Demo Mode Configuration
+# "online" : Server functions normally.
+# "offline": Simulates server outage (returns 503 Service Unavailable).
+SERVER_STATUS = "online"
+
+
 # Configure upload directory
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -154,7 +160,10 @@ def health():
     """
     Status endpoint indicating if the server is healthy.
     """
-    return jsonify({"status": "healthy"}), 200
+    if SERVER_STATUS == "online":
+        return jsonify({"status": "online"}), 200
+    else:
+        return jsonify({"status": "offline"}), 503
 
 
 @app.route('/predict', methods=['POST'])
@@ -162,6 +171,9 @@ def predict():
     """
     Endpoint that handles image upload, runs inference via detect.py in-memory, and returns JSON.
     """
+    if SERVER_STATUS == "offline":
+        return jsonify({"success": False, "error": "Prediction service is currently unavailable. Please try again later."}), 503
+
     if 'image' not in request.files:
         return jsonify({"success": False, "error": "No image file provided in upload request."}), 400
         

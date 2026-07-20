@@ -629,3 +629,21 @@ body {
     font-size: 11px;
     color: var(--text-muted);
 }
+
+/* ==============================================================================
+   DISABLED STATES FOR DEMO MODE
+   ============================================================================== */
+.drop-zone.disabled {
+    cursor: not-allowed !important;
+    opacity: 0.55;
+    border-color: var(--border-color) !important;
+    background-color: rgba(27, 35, 54, 0.1) !important;
+    pointer-events: none;
+}
+
+.btn.disabled, .btn:disabled {
+    cursor: not-allowed !important;
+    opacity: 0.55;
+    pointer-events: none;
+    box-shadow: none !important;
+}

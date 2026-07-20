@@ -263,7 +263,7 @@ def validate_morphology(image_path):
             return False, "Image has a highly uniform color profile, likely computer-generated."
             
         # Rule 2: Non-target species check (purple leaves)
-        if purple_pct > 0.015:
+        if purple_pct > 0.08:
             return False, f"Non-target species detected: contains significant purple morphological features ({purple_pct * 100:.2f}%)."
             
         # Rule 3: Plant/Seedling presence check

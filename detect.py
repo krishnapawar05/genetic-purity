@@ -470,7 +470,7 @@ def main():
 
     # Step 2: Establish model path
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "uploads", "model.keras")
+    model_path = os.path.join(script_dir, "model.keras")
 
     if not os.path.exists(model_path):
         print(f"Error: Trained model file not found at '{model_path}'.", file=sys.stderr)

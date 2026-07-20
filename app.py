@@ -37,7 +37,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp', 'webp'}
 # Pre-load the model when starting up
 # In Flask's debug mode, to prevent loading twice, check WERKZEUG_RUN_MAIN
 model = None
-model_path = os.path.join(app.config['UPLOAD_FOLDER'], "model.keras")
+model_path = os.path.join(current_dir, "model.keras")
 
 if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     try:
@@ -177,7 +177,7 @@ def predict():
         global model
         if model is None:
             # Lazy load model if it was not loaded on startup
-            model_path = os.path.join(app.config['UPLOAD_FOLDER'], "model.keras")
+            model_path = os.path.join(current_dir, "model.keras")
             model = load_model(model_path, compile=False)
             
         # Run inference in-memory

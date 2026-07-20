@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let purityChart = null;
 
     // Supported extensions and max size (16MB)
-    const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'bmp', 'webp'];
+    const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'bmp', 'webp', 'dng', 'heic'];
     const MAX_FILE_SIZE = 16 * 1024 * 1024; 
 
     // ==============================================================================
@@ -123,19 +123,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
         activeFile = file;
         
-        // 3. Render client-side image preview
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            imagePreview.src = e.target.result;
+        // 3. Render client-side image preview (use SVG placeholder for non-web formats like DNG/HEIC)
+        if (fileExt === 'heic' || fileExt === 'dng') {
+            imagePreview.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="224" height="224" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" font-family="Outfit, sans-serif" font-size="3" font-weight="600" fill="%23f8fafc">${fileExt.toUpperCase()} FILE</text><text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" font-family="Outfit, sans-serif" font-size="2" fill="%2364748b">Processed on upload</text></svg>`;
             uploadPrompt.style.display = "none";
             previewContainer.style.display = "flex";
             actionArea.style.display = "block";
-        };
-        reader.onerror = () => {
-            showError("Failed to read image file.");
-            clearFileState();
-        };
-        reader.readAsDataURL(file);
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                uploadPrompt.style.display = "none";
+                previewContainer.style.display = "flex";
+                actionArea.style.display = "block";
+            };
+            reader.onerror = () => {
+                showError("Failed to read image file.");
+                clearFileState();
+            };
+            reader.readAsDataURL(file);
+        }
     }
 
     // Reset uploader state

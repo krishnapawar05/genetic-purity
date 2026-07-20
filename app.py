@@ -19,6 +19,12 @@ import detect
 from tensorflow.keras.models import load_model
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
+from PIL import Image
+import rawpy
+from pillow_heif import register_heif_opener
+
+# Register HEIC opener with Pillow to support HEIC files transparently
+register_heif_opener()
 
 app = Flask(__name__)
 app.debug = True
@@ -38,7 +44,40 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Limit file size to 16MB
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp', 'webp'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp', 'webp', 'dng', 'heic'}
+
+
+def convert_to_standard_format(filepath):
+    """
+    Converts .heic or .dng files to RGB JPEG format.
+    Returns the path to the converted image file, or None if conversion fails.
+    """
+    ext = os.path.splitext(filepath)[1].lower()
+    if ext not in ['.heic', '.dng']:
+        return filepath
+
+    converted_path = os.path.splitext(filepath)[0] + "_converted.jpg"
+    try:
+        if ext == '.heic':
+            # Opened via Pillow because of register_heif_opener()
+            with Image.open(filepath) as img:
+                rgb_img = img.convert('RGB')
+                rgb_img.save(converted_path, 'JPEG', quality=95)
+        elif ext == '.dng':
+            with rawpy.imread(filepath) as raw:
+                # Postprocess RAW to RGB numpy array
+                rgb = raw.postprocess(use_camera_wb=True, bright=1.0)
+                img = Image.fromarray(rgb)
+                img.save(converted_path, 'JPEG', quality=95)
+        return converted_path
+    except Exception as e:
+        print(f"Error converting {ext} file: {e}", file=sys.stderr, flush=True)
+        if os.path.exists(converted_path):
+            try:
+                os.remove(converted_path)
+            except Exception:
+                pass
+        return None
 
 # Pre-load the model when starting up
 # In Flask's debug mode, to prevent loading twice, check WERKZEUG_RUN_MAIN
@@ -188,11 +227,25 @@ def predict():
         }), 400
         
     filepath = None
+    converted_filepath = None
     try:
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
+        # Convert HEIC/DNG to standard JPEG
+        ext = os.path.splitext(filepath)[1].lower()
+        if ext in ['.heic', '.dng']:
+            converted_filepath = convert_to_standard_format(filepath)
+            if not converted_filepath:
+                return jsonify({
+                    "success": False,
+                    "error": "Unable to process this DNG/HEIC image. Please try another image or convert it to PNG or JPEG."
+                }), 400
+            inference_path = converted_filepath
+        else:
+            inference_path = filepath
+            
         # Access pre-loaded global model
         global model
         if model is None:
@@ -201,7 +254,7 @@ def predict():
             model = load_model(model_path, compile=False)
             
         # Run inference in-memory
-        result = detect.predict_image(filepath, model)
+        result = detect.predict_image(inference_path, model)
         
         # Format probabilities as percentages (0-100 scale) to keep UI compatibility
         probabilities_scaled = {
@@ -225,12 +278,13 @@ def predict():
         return jsonify({"success": False, "error": f"Internal server error: {str(e)}"}), 500
         
     finally:
-        # Guarantee cleanup of uploaded file
-        if filepath and os.path.exists(filepath):
-            try:
-                os.remove(filepath)
-            except Exception:
-                pass
+        # Guarantee cleanup of uploaded and converted files
+        for p in [filepath, converted_filepath]:
+            if p and os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
 
 
 if __name__ == "__main__":

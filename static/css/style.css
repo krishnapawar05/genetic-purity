@@ -89,6 +89,22 @@ body {
     border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
+.project-tag.status-online {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.project-tag.status-offline {
+    color: #f43f5e;
+    background: rgba(244, 63, 94, 0.1);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.upload-card .card-header {
+    text-align: center;
+}
+
 .main-title {
     font-family: var(--font-heading);
     font-size: 32px;

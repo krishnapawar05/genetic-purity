@@ -333,4 +333,47 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+
+    // ==============================================================================
+    // SERVER STATUS CHECK PIPELINE
+    // ==============================================================================
+    const statusBadge = document.getElementById("serverStatusBadge");
+
+    function checkServerStatus() {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
+
+        fetch("/health", { signal: controller.signal })
+            .then(response => {
+                clearTimeout(timeoutId);
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error("Server response not OK");
+            })
+            .then(data => {
+                if (data.status === "healthy") {
+                    statusBadge.textContent = "🟢 ONLINE";
+                    statusBadge.className = "project-tag status-online";
+                } else {
+                    setOfflineState();
+                }
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                setOfflineState();
+            });
+    }
+
+    // Set fallback offline state
+    function setOfflineState() {
+        statusBadge.textContent = "🔴 OFFLINE";
+        statusBadge.className = "project-tag status-offline";
+    }
+
+    // Run initial health check immediately
+    checkServerStatus();
+
+    // Periodically query the server status every 5 seconds
+    setInterval(checkServerStatus, 5000);
 });

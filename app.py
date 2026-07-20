@@ -149,6 +149,14 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/health')
+def health():
+    """
+    Status endpoint indicating if the server is healthy.
+    """
+    return jsonify({"status": "healthy"}), 200
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
     """

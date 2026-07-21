@@ -33,15 +33,17 @@ SUPPORTED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
 CLASS_INDICES = {
     "female": 0,
     "hybrid": 1,
-    "male": 2
+    "male": 2,
+    "unknown": 3
 }
-CLASS_LABELS = ["female", "hybrid", "male"]
+CLASS_LABELS = ["female", "hybrid", "male", "unknown"]
 
 # Display name mapping for standard casing
 CLASS_DISPLAY_MAP = {
     'female': 'Female',
     'male': 'Male',
-    'hybrid': 'Hybrid'
+    'hybrid': 'Hybrid',
+    'unknown': 'Unknown Plant'
 }
 
 
@@ -304,7 +306,8 @@ def predict_image(image_path, model):
             "probabilities": {
                 CLASS_LABELS[0]: 0.0,
                 CLASS_LABELS[1]: 0.0,
-                CLASS_LABELS[2]: 0.0
+                CLASS_LABELS[2]: 0.0,
+                CLASS_LABELS[3]: 0.0
             },
             "reason": reject_reason,
             "prediction_time": f"{prediction_duration:.2f}s"
@@ -409,16 +412,22 @@ def predict_image(image_path, model):
         pass
 
     highest_confidence = float(predictions[0][predicted_idx])
-    predicted_class_display = get_display_name(predicted_class_raw)
     
-    # Apply thresholds and purity decision logic
-    final_predicted_class = predicted_class_raw.upper()
-    
-    # Purity status
-    if predicted_class_raw == 'hybrid':
-        genetic_purity = "Pure Plant"
+    # Confidence-based Out-of-Distribution (OOD) and explicit Unknown Plant check
+    # If prediction is 'unknown' or prediction of known chili classes is low-confidence (< 70%),
+    # categorize the image as an Unknown Plant.
+    if predicted_class_raw == 'unknown' or (predicted_class_raw in ['female', 'hybrid', 'male'] and highest_confidence < 0.70):
+        predicted_class_raw = 'unknown'
+        final_predicted_class = "UNKNOWN"
+        genetic_purity = "Unknown Plant"
     else:
-        genetic_purity = "Impure Plant"
+        final_predicted_class = predicted_class_raw.upper()
+        if predicted_class_raw == 'hybrid':
+            genetic_purity = "Pure Plant"
+        else:
+            genetic_purity = "Impure Plant"
+            
+    predicted_class_display = get_display_name(predicted_class_raw)
         
     # Reliability indicators
     if highest_confidence >= 0.90:
@@ -432,7 +441,9 @@ def predict_image(image_path, model):
         
     # Reason explanation
     confidence_threshold = 0.95
-    if predicted_class_raw == 'hybrid':
+    if predicted_class_raw == 'unknown':
+        reason = "The uploaded specimen does not match the morphological characteristics of genuine chili seedlings (Male, Female, or Hybrid) with sufficient confidence, and is classified as an Unknown Plant."
+    elif predicted_class_raw == 'hybrid':
         if override_reason == "hybrid_violet":
             reason = "The uploaded specimen exhibits distinct purple/violet hypocotyl pigmentation (anthocyanin) characteristic of Hybrid seedlings. This morphological trait overrides the neural network prediction, confirming it as a Hybrid (Pure) plant."
         elif highest_confidence >= confidence_threshold:
@@ -457,7 +468,8 @@ def predict_image(image_path, model):
     probabilities = {
         CLASS_LABELS[0]: float(predictions[0][0]),
         CLASS_LABELS[1]: float(predictions[0][1]),
-        CLASS_LABELS[2]: float(predictions[0][2])
+        CLASS_LABELS[2]: float(predictions[0][2]),
+        CLASS_LABELS[3]: float(predictions[0][3])
     }
     
     return {

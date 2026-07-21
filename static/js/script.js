@@ -123,12 +123,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
         activeFile = file;
         
-        // 3. Render client-side image preview (use SVG placeholder for non-web formats like DNG/HEIC)
+        // 3. Render client-side image preview (use server-side conversion for HEIC/DNG formats)
         if (fileExt === 'heic' || fileExt === 'dng') {
-            imagePreview.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="224" height="224" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" font-family="Outfit, sans-serif" font-size="3" font-weight="600" fill="%23f8fafc">${fileExt.toUpperCase()} FILE</text><text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" font-family="Outfit, sans-serif" font-size="2" fill="%2364748b">Processed on upload</text></svg>`;
+            // Show loading placeholder spinner
+            imagePreview.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="224" height="224" viewBox="0 0 24 24" fill="none" stroke="%233b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke-dasharray="30 30" stroke-dashoffset="0"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle><text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" font-family="Outfit, sans-serif" font-size="2" fill="%23f8fafc">Generating Preview...</text></svg>`;
             uploadPrompt.style.display = "none";
             previewContainer.style.display = "flex";
             actionArea.style.display = "block";
+
+            const formData = new FormData();
+            formData.append("image", file);
+
+            fetch("/convert-preview", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Preview generation failed.");
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.preview) {
+                    // Update preview source with base64 converted JPEG
+                    imagePreview.src = data.preview;
+                } else {
+                    throw new Error(data.error || "Preview generation failed.");
+                }
+            })
+            .catch(err => {
+                console.error("Error generating preview:", err);
+                imagePreview.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="224" height="224" viewBox="0 0 24 24" fill="none" stroke="%23ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" font-family="Outfit, sans-serif" font-size="2.5" font-weight="600" fill="%23ef4444">PREVIEW FAILED</text></svg>`;
+            });
         } else {
             const reader = new FileReader();
             reader.onload = (e) => {

@@ -205,6 +205,54 @@ def health():
         return jsonify({"status": "offline"}), 503
 
 
+@app.route('/convert-preview', methods=['POST'])
+def convert_preview():
+    """
+    Temporary endpoint to convert uploaded HEIC/DNG file to a base64 JPEG for browser preview.
+    """
+    if SERVER_STATUS == "offline":
+        return jsonify({"success": False, "error": "Preview service is offline."}), 503
+
+    if 'image' not in request.files:
+        return jsonify({"success": False, "error": "No image file provided."}), 400
+        
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"success": False, "error": "No file was selected."}), 400
+        
+    import base64
+    import uuid
+    
+    filename = secure_filename(file.filename)
+    # Generate unique temp filename to avoid collision
+    temp_filename = f"temp_preview_{uuid.uuid4().hex}_{filename}"
+    temp_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+    converted_path = None
+    try:
+        file.save(temp_path)
+        converted_path = convert_to_standard_format(temp_path)
+        if not converted_path or not os.path.exists(converted_path):
+            return jsonify({"success": False, "error": "Failed to generate preview image."}), 400
+            
+        with open(converted_path, "rb") as img_file:
+            encoded_string = base64.b64encode(img_file.read()).decode('utf-8')
+            
+        return jsonify({
+            "success": True,
+            "preview": f"data:image/jpeg;base64,{encoded_string}"
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        # Guarantee cleanup of all temp files
+        for p in [temp_path, converted_path]:
+            if p and os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
     """

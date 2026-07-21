@@ -80,7 +80,7 @@ def convert_to_standard_format(filepath):
         return None
 
 # Pre-load the model when starting up
-# In Flask's debug mode, to prevent loading twice, check WERKZEUG_RUN_MAIN
+# In Flask's debug mode,to prevent loading twice, check WERKZEUG_RUN_MAIN
 model = None
 model_path = os.path.join(current_dir, "model.keras")
 

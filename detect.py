@@ -109,30 +109,35 @@ def validate_image(image_path):
 def focus_only_on_plant(img_array):
     """
     Given an RGB NumPy array representing an image,
-    blacks out any pixel that does not belong to the seedling.
+    blacks out any pixel that does not belong to the seedling
+    while excluding yellow/brown table backgrounds.
     """
     try:
         import cv2
-        # Convert RGB to BGR for OpenCV
         img_uint8 = img_array.astype(np.uint8)
         img_bgr = cv2.cvtColor(img_uint8, cv2.COLOR_RGB2BGR)
         hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
         
-        # Green leaves
-        lower_green = np.array([20, 20, 15])
-        upper_green = np.array([100, 255, 255])
+        # Green leaves (Hue 25 to 95, Saturation >= 30, Value >= 20)
+        lower_green = np.array([25, 30, 20])
+        upper_green = np.array([95, 255, 255])
         mask_green = cv2.inRange(hsv, lower_green, upper_green)
         
-        # Stem (purple/maroon/red)
-        lower_stem1 = np.array([0, 20, 15])
-        upper_stem1 = np.array([25, 255, 255])
-        mask_stem1 = cv2.inRange(hsv, lower_stem1, upper_stem1)
+        # Purple/maroon stem (Hue 125 to 175, Saturation >= 30, Value >= 20)
+        lower_purple = np.array([125, 30, 20])
+        upper_purple = np.array([175, 255, 255])
+        mask_purple = cv2.inRange(hsv, lower_purple, upper_purple)
         
-        lower_stem2 = np.array([115, 20, 15])
-        upper_stem2 = np.array([180, 255, 255])
-        mask_stem2 = cv2.inRange(hsv, lower_stem2, upper_stem2)
+        # Deep red stem (Hue 0 to 10, Saturation >= 50, Value >= 20) -- EXCLUDES yellow table (Hue 12..38)
+        lower_red = np.array([0, 50, 20])
+        upper_red = np.array([10, 255, 255])
+        mask_red = cv2.inRange(hsv, lower_red, upper_red)
         
-        plant_mask = mask_green | mask_stem1 | mask_stem2
+        plant_mask = mask_green | mask_purple | mask_red
+        
+        # Morphological closing to fill small inner holes
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        plant_mask = cv2.morphologyEx(plant_mask, cv2.MORPH_CLOSE, kernel)
         
         clean_img = np.zeros_like(img_array)
         clean_img[plant_mask > 0] = img_array[plant_mask > 0]
@@ -166,8 +171,6 @@ def preprocess_image(image_path):
             img_resized = img_rgb.resize(IMAGE_SIZE, resample_filter)
             # Convert to NumPy array (float32 to match training tensor types)
             img_array = np.array(img_resized, dtype=np.float32)
-            # Apply plant focusing filter to clean the background
-            img_array = focus_only_on_plant(img_array)
             # Expand dimensions to create batch size of 1
             img_expanded = np.expand_dims(img_array, axis=0)
             # Apply MobileNet-specific preprocessing
@@ -413,11 +416,8 @@ def predict_image(image_path, model):
 
     highest_confidence = float(predictions[0][predicted_idx])
     
-    # Confidence-based Out-of-Distribution (OOD) and explicit Unknown Plant check
-    # If prediction is 'unknown' or prediction of known chili classes is low-confidence (< 70%),
-    # categorize the image as an Unknown Plant.
-    if predicted_class_raw == 'unknown' or (predicted_class_raw in ['female', 'hybrid', 'male'] and highest_confidence < 0.70):
-        predicted_class_raw = 'unknown'
+    # Neural network prediction decision logic
+    if predicted_class_raw == 'unknown':
         final_predicted_class = "UNKNOWN"
         genetic_purity = "Unknown Plant"
     else:

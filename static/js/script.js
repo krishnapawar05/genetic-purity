@@ -1,7 +1,7 @@
 /**
  * Client-side script for Plant Purity Testing Interface.
  * Manages Drag & Drop, File Upload Validation, REST API communications,
- * and rendering prediction visualization results with Chart.js.
+ * upload progress, and rendering prediction visualization results with Chart.js.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -41,9 +41,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let activeFile = null;
     let purityChart = null;
 
-    // Supported extensions and max size (16MB)
+    // Supported extensions and max size (50MB limit)
     const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'bmp', 'webp', 'dng', 'heic'];
-    const MAX_FILE_SIZE = 16 * 1024 * 1024; 
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; 
 
     // ==============================================================================
     // DRAG AND DROP EVENT HANDLERS
@@ -114,9 +114,9 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // 2. Validate File Size
+        // 2. Validate File Size (50 MB limit)
         if (file.size > MAX_FILE_SIZE) {
-            showError("File size exceeds the 16MB limit.");
+            showError("File size exceeds the 50 MB limit. Please select a smaller file.");
             clearFileState();
             return;
         }
@@ -207,16 +207,26 @@ document.addEventListener("DOMContentLoaded", () => {
         resultsCard.className = "card results-card";
     }
 
+    function resetAnalyzeButtonState() {
+        analyzeBtn.disabled = false;
+        removeBtn.disabled = false;
+        browseBtn.disabled = false;
+        btnText.textContent = "Analyze Plant Specimen";
+        btnSpinner.style.display = "none";
+    }
+
     // ==============================================================================
-    // REST API - PIPELINE INFERENCE EXECUTION
+    // REST API - PIPELINE INFERENCE EXECUTION WITH XHR PROGRESS
     // ==============================================================================
     
     analyzeBtn.addEventListener('click', () => {
         if (!activeFile) return;
 
-        // Set Loading State
+        // Set Loading & Disabled State
         analyzeBtn.disabled = true;
-        btnText.textContent = "Analyzing Specimen...";
+        removeBtn.disabled = true;
+        browseBtn.disabled = true;
+        btnText.textContent = "Uploading (0%)...";
         btnSpinner.style.display = "block";
         hideError();
         hideResults();
@@ -224,35 +234,65 @@ document.addEventListener("DOMContentLoaded", () => {
         const formData = new FormData();
         formData.append("image", activeFile);
 
-        fetch("/predict", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(errData => {
-                    throw new Error(errData.error || `Server responded with status ${response.status}`);
-                });
+        const xhr = new XMLHttpRequest();
+
+        // Track Real-time Upload Progress
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                if (percentComplete < 100) {
+                    btnText.textContent = `Uploading (${percentComplete}%)...`;
+                } else {
+                    btnText.textContent = "Analyzing Specimen...";
+                }
             }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                renderResults(data);
+        };
+
+        xhr.upload.onload = () => {
+            btnText.textContent = "Analyzing Specimen...";
+        };
+
+        xhr.onload = function() {
+            let data = null;
+            try {
+                data = JSON.parse(xhr.responseText);
+            } catch (err) {
+                data = null;
+            }
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                if (data && data.success) {
+                    renderResults(data);
+                } else {
+                    showError((data && data.error) ? data.error : "Inference pipeline failed to process image.");
+                }
+            } else if (xhr.status === 413) {
+                showError((data && data.error) ? data.error : "Uploaded file is too large (maximum 50 MB). Please select a smaller file.");
+            } else if (xhr.status === 504 || xhr.status === 408) {
+                showError("Request timed out while processing. The server took too long to analyze the image. Please try again.");
+            } else if (xhr.status === 503) {
+                showError("Prediction service is currently busy. Please try again in a few moments.");
             } else {
-                showError(data.error || "Inference pipeline failed.");
+                const msg = (data && data.error) ? data.error : `Server encountered an error (HTTP ${xhr.status}). Please try again.`;
+                showError(msg);
             }
-        })
-        .catch(err => {
-            console.error(err);
-            showError(`Error: ${err.message || "An unexpected error occurred during prediction."}`);
-        })
-        .finally(() => {
-            // Reset Loading State
-            analyzeBtn.disabled = false;
-            btnText.textContent = "Analyze Plant Specimen";
-            btnSpinner.style.display = "none";
-        });
+            resetAnalyzeButtonState();
+        };
+
+        xhr.onerror = function() {
+            showError("Network error or connection lost during upload. Please check your internet connection.");
+            resetAnalyzeButtonState();
+        };
+
+        xhr.ontimeout = function() {
+            showError("Upload timed out. The server took too long to respond. Please try again.");
+            resetAnalyzeButtonState();
+        };
+
+        // Set 3 minutes timeout (180,000 ms) matching Gunicorn configuration
+        xhr.timeout = 180000;
+        xhr.open("POST", "/predict", true);
+        xhr.send(formData);
     });
 
     // ==============================================================================
@@ -404,12 +444,14 @@ document.addEventListener("DOMContentLoaded", () => {
         statusBadge.textContent = "🟢 ONLINE";
         statusBadge.className = "project-tag status-online";
         
-        // Re-enable UI components
-        dropZone.classList.remove("disabled");
-        browseBtn.classList.remove("disabled");
-        browseBtn.disabled = false;
-        analyzeBtn.classList.remove("disabled");
-        analyzeBtn.disabled = false;
+        // Re-enable UI components if not currently uploading
+        if (btnText.textContent === "Analyze Plant Specimen") {
+            dropZone.classList.remove("disabled");
+            browseBtn.classList.remove("disabled");
+            browseBtn.disabled = false;
+            analyzeBtn.classList.remove("disabled");
+            analyzeBtn.disabled = false;
+        }
         
         // If the offline message is currently visible, hide it
         if (errorText.textContent === "Prediction service is currently unavailable. Please try again later.") {

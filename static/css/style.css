@@ -626,8 +626,9 @@ body {
 }
 
 .app-footer-bar p {
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 400;
+    color: #7a7f8c;
 }
 
 /* ==============================================================================

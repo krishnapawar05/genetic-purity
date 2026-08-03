@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Verify OTP - Genetic Purity AI{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16">
+    <div class="glass-card p-8 relative overflow-hidden">
+        <div class="text-center mb-8">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-4">
+                <i class="fa-solid fa-shield-halved text-2xl text-cyan-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white">Enter OTP Code</h2>
+            <p class="text-slate-400 text-xs mt-1">
+                We dispatched a 6-digit code to <span class="text-emerald-400 font-mono font-bold">{{ mobile }}</span>
+            </p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.verify_otp') }}" class="space-y-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div>
+                <label for="otp" class="form-label text-center">6-Digit Verification Code</label>
+                <input type="text" id="otp" name="otp" required maxlength="6" pattern="[0-9]{6}" class="form-input text-center text-2xl font-mono tracking-widest" placeholder="123456" autofocus>
+            </div>
+
+            <button type="submit" class="btn-primary w-full py-3 text-sm font-semibold shadow-lg shadow-emerald-500/25">
+                <i class="fa-solid fa-check-double mr-2"></i> Verify Code
+            </button>
+        </form>
+
+        <div class="mt-8 pt-6 border-t border-slate-800 text-center text-xs text-slate-400">
+            Didn't receive the code? 
+            <a href="{{ url_for('auth.forgot_password') }}" class="text-emerald-400 font-semibold hover:underline">Resend OTP</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

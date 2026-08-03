@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Genetic Purity AI{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-12">
+    <div class="glass-card p-8 relative overflow-hidden">
+        <div class="text-center mb-8">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-4">
+                <i class="fa-solid fa-user-plus text-2xl text-emerald-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white">Create Your Account</h2>
+            <p class="text-slate-400 text-xs mt-1">Join Genetic Purity AI to analyze crop specimen authenticity.</p>
+        </div>
+
+        <form id="signup-form" method="POST" action="{{ url_for('auth.signup') }}" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="firstName" class="form-label">First Name</label>
+                    <input type="text" id="firstName" name="firstName" value="{{ form_data.firstName or '' }}" required class="form-input" placeholder="John">
+                </div>
+                <div>
+                    <label for="lastName" class="form-label">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" value="{{ form_data.lastName or '' }}" required class="form-input" placeholder="Doe">
+                </div>
+            </div>
+
+            <div>
+                <label for="mobileNumber" class="form-label">Mobile Number</label>
+                <input type="tel" id="mobileNumber" name="mobileNumber" value="{{ form_data.mobileNumber or '' }}" required class="form-input" placeholder="+1234567890">
+                <span class="text-[11px] text-slate-400 mt-1 block">Used for SMS OTP password recovery.</span>
+            </div>
+
+            <div>
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" id="email" name="email" value="{{ form_data.email or '' }}" required class="form-input" placeholder="john.doe@agri-lab.com">
+            </div>
+
+            <div>
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" required class="form-input" placeholder="Min. 8 chars, mixed case & numbers">
+                
+                <!-- Password Strength Meter -->
+                <div class="mt-2 space-y-1">
+                    <div class="flex justify-between items-center text-[11px]">
+                        <span class="text-slate-400">Strength:</span>
+                        <span id="strength-text" class="font-bold text-rose-400">Too Short</span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                        <div id="strength-bar" class="h-full bg-rose-500 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required class="form-input" placeholder="Re-enter password">
+                <span id="match-error" class="hidden text-rose-400 text-xs mt-1 block">Passwords do not match.</span>
+            </div>
+
+            <button type="submit" class="btn-primary w-full py-3.5 text-sm font-semibold shadow-lg shadow-emerald-500/25 mt-4">
+                <i class="fa-solid fa-user-plus mr-2"></i> Register Account
+            </button>
+        </form>
+
+        <div class="mt-8 pt-6 border-t border-slate-800 text-center text-xs text-slate-400">
+            Already have an account? 
+            <a href="{{ url_for('auth.login') }}" class="text-emerald-400 font-semibold hover:underline">Log in</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+{% endblock %}

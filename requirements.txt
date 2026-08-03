@@ -8,3 +8,15 @@ Werkzeug
 matplotlib
 pillow-heif
 rawpy
+pymongo
+flask-login
+bcrypt
+twilio
+python-dotenv
+razorpay
+reportlab
+qrcode
+Flask-WTF
+Flask-Limiter
+certifi
+dnspython

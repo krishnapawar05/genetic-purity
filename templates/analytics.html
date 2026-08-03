@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics & History - Genetic Purity AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                <i class="fa-solid fa-chart-line"></i> Diagnostic Data Engine
+            </div>
+            <h1 class="text-3xl font-extrabold text-white">Analytics & Transaction Logs</h1>
+            <p class="text-slate-400 text-sm mt-1">Review specimen breakdown statistics, search past predictions, and audit payment receipts.</p>
+        </div>
+        <a href="{{ url_for('main.test_purity') }}" class="btn-primary text-xs px-5 py-2.5 shadow-lg shadow-emerald-500/25">
+            <i class="fa-solid fa-flask-vial mr-1.5"></i> Run Purity Test
+        </a>
+    </div>
+
+    <!-- Analytics Breakdown Counters Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+        <div class="glass-card p-5 border-slate-800">
+            <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Total Tests</div>
+            <div class="text-2xl font-extrabold text-white font-mono">{{ stats.total_tests }}</div>
+        </div>
+
+        <div class="glass-card p-5 border-emerald-500/30">
+            <div class="text-[11px] text-emerald-400 font-semibold uppercase tracking-wider mb-1">Pure Hybrid</div>
+            <div class="text-2xl font-extrabold text-emerald-400 font-mono">{{ stats.hybrid_count }}</div>
+        </div>
+
+        <div class="glass-card p-5 border-teal-500/30">
+            <div class="text-[11px] text-teal-400 font-semibold uppercase tracking-wider mb-1">Female Inbred</div>
+            <div class="text-2xl font-extrabold text-teal-400 font-mono">{{ stats.female_count }}</div>
+        </div>
+
+        <div class="glass-card p-5 border-cyan-500/30">
+            <div class="text-[11px] text-cyan-400 font-semibold uppercase tracking-wider mb-1">Male Inbred</div>
+            <div class="text-2xl font-extrabold text-cyan-400 font-mono">{{ stats.male_count }}</div>
+        </div>
+
+        <div class="glass-card p-5 border-amber-500/30">
+            <div class="text-[11px] text-amber-400 font-semibold uppercase tracking-wider mb-1">Unknown</div>
+            <div class="text-2xl font-extrabold text-amber-400 font-mono">{{ stats.unknown_count }}</div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="glass-card p-6 mb-8">
+        <form method="GET" action="{{ url_for('main.analytics') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-2 relative">
+                <input type="text" name="q" value="{{ q }}" placeholder="Search by specimen filename, predicted class, or purity verdict..." class="form-input pl-10 text-sm">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+            </div>
+
+            <div class="flex gap-2">
+                <select name="class_filter" class="form-input text-sm">
+                    <option value="all" {% if class_filter == 'all' %}selected{% endif %}>All Classes</option>
+                    <option value="hybrid" {% if class_filter == 'hybrid' %}selected{% endif %}>Pure Hybrid</option>
+                    <option value="female" {% if class_filter == 'female' %}selected{% endif %}>Female Inbred</option>
+                    <option value="male" {% if class_filter == 'male' %}selected{% endif %}>Male Inbred</option>
+                    <option value="unknown" {% if class_filter == 'unknown' %}selected{% endif %}>Unknown</option>
+                </select>
+                <button type="submit" class="btn-primary text-xs px-5">Filter</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Filtered Prediction History Table -->
+    <div class="glass-card p-6 mb-10">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-emerald-400"></i> Prediction Diagnostic History
+            </h3>
+            <span class="text-xs text-slate-400 font-mono">Records: {{ history|length }}</span>
+        </div>
+
+        {% if history %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="text-xs uppercase bg-slate-900/80 text-slate-400 border-b border-slate-800">
+                        <tr>
+                            <th class="py-3 px-4">Specimen File</th>
+                            <th class="py-3 px-4">Purity Verdict</th>
+                            <th class="py-3 px-4">Predicted Class</th>
+                            <th class="py-3 px-4">Confidence</th>
+                            <th class="py-3 px-4">Reliability</th>
+                            <th class="py-3 px-4">Date</th>
+                            <th class="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-mono text-xs">
+                        {% for item in history %}
+                            <tr class="hover:bg-slate-900/40 transition-colors">
+                                <td class="py-3.5 px-4 font-semibold text-white truncate max-w-[160px]" title="{{ item.filename }}">
+                                    <i class="fa-solid fa-file-image text-slate-400 mr-1.5"></i>{{ item.filename }}
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    {% if item.purity.lower().startswith('pure') and item.prediction != 'UNKNOWN' %}
+                                        <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                            {{ item.purity }}
+                                        </span>
+                                    {% elif item.prediction == 'UNKNOWN' or 'unknown' in item.purity.lower() %}
+                                        <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                            {{ item.purity }}
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                            {{ item.purity }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3.5 px-4 text-slate-200">{{ item.prediction }}</td>
+                                <td class="py-3.5 px-4 font-bold text-white">{{ item.confidence }}</td>
+                                <td class="py-3.5 px-4 text-slate-400">{{ item.reliability }}</td>
+                                <td class="py-3.5 px-4 text-slate-400">
+                                    {% if item.createdAt %}
+                                        {{ item.createdAt.strftime('%b %d, %H:%M') }}
+                                    {% else %}
+                                        Just now
+                                    {% endif %}
+                                </td>
+                                <td class="py-3.5 px-4 text-right space-x-2">
+                                    <a href="{{ url_for('main.view_result', prediction_id=item.id) }}" class="text-emerald-400 hover:underline font-semibold">View</a>
+                                    <a href="{{ url_for('main.download_report', prediction_id=item.id) }}" class="text-teal-300 hover:underline"><i class="fa-solid fa-file-pdf"></i> PDF</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-10 text-slate-400 text-sm">
+                No matching prediction records found for your search criteria.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Payment Transaction History Table -->
+    <div class="glass-card p-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-receipt text-cyan-400"></i> Razorpay Payment Transaction Logs
+            </h3>
+            <span class="text-xs text-slate-400 font-mono">Stored in MongoDB</span>
+        </div>
+
+        {% if payments %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="text-xs uppercase bg-slate-900/80 text-slate-400 border-b border-slate-800">
+                        <tr>
+                            <th class="py-3 px-4">Order ID</th>
+                            <th class="py-3 px-4">Payment ID</th>
+                            <th class="py-3 px-4">Amount</th>
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-mono text-xs">
+                        {% for pmt in payments %}
+                            <tr class="hover:bg-slate-900/40 transition-colors">
+                                <td class="py-3.5 px-4 text-slate-300">{{ pmt.orderId }}</td>
+                                <td class="py-3.5 px-4 font-bold text-white">{{ pmt.paymentId if pmt.paymentId else 'N/A' }}</td>
+                                <td class="py-3.5 px-4 text-emerald-400 font-bold">₹{{ pmt.amount }} {{ pmt.currency }}</td>
+                                <td class="py-3.5 px-4">
+                                    {% if pmt.status == 'paid' %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                            PAID VERIFIED
+                                        </span>
+                                    {% elif pmt.status == 'failed' %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                            FAILED
+                                        </span>
+                                    {% else %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                            PENDING
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3.5 px-4 text-slate-400">
+                                    {% if pmt.createdAt %}
+                                        {{ pmt.createdAt.strftime('%b %d, %Y %H:%M') }}
+                                    {% else %}
+                                        Recent
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-10 text-slate-400 text-sm">
+                No payment transaction logs recorded yet.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

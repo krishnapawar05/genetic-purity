@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Plant Genetic Purity Analysis Workspace{% endblock %}
+
+{% block extra_css %}
+<!-- Chart.js for doughnut visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Razorpay Standard Checkout JS -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+    /* Specific styles for upload zone & results */
+    .drop-zone {
+        border: 2px dashed #374151;
+        border-radius: 1.25rem;
+        background: rgba(17, 24, 39, 0.6);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .drop-zone.drag-over, .drop-zone:hover {
+        border-color: #10b981;
+        background: rgba(16, 185, 129, 0.05);
+    }
+    .drop-zone.disabled {
+        pointer-events: none;
+        opacity: 0.5;
+    }
+    .progress-bar-inner {
+        height: 100%;
+        border-radius: 9999px;
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .status-pure {
+        border-color: rgba(16, 185, 129, 0.5) !important;
+        box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.2) !important;
+    }
+    .status-impure {
+        border-color: rgba(244, 63, 94, 0.5) !important;
+        box-shadow: 0 0 35px -5px rgba(244, 63, 94, 0.2) !important;
+    }
+    .status-unknown {
+        border-color: rgba(245, 158, 11, 0.5) !important;
+        box-shadow: 0 0 35px -5px rgba(245, 158, 11, 0.2) !important;
+    }
+    .status-online { background-color: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .status-offline { background-color: rgba(244, 63, 94, 0.2); color: #fb7185; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+        <div>
+            <div class="flex items-center gap-3 mb-1">
+                <h1 class="text-3xl font-extrabold text-white">Plant Genetic Purity Testing</h1>
+                <span id="serverStatusBadge" class="px-2.5 py-1 rounded-full text-xs font-mono font-semibold status-online">
+                    🟢 ONLINE
+                </span>
+            </div>
+            <p class="text-slate-400 text-sm">Upload crop specimen imagery for instant MobileNet neural classification.</p>
+        </div>
+        <a href="{{ url_for('main.dashboard') }}" class="btn-secondary text-xs px-4 py-2">
+            <i class="fa-solid fa-arrow-left mr-1.5"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Error Alert Container -->
+    <div id="errorAlert" class="hidden mb-6 alert-box alert-danger">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-triangle-exclamation text-rose-400 text-lg"></i>
+            <span id="errorText" class="text-sm font-medium text-slate-100"></span>
+        </div>
+    </div>
+
+    <!-- Upload Card -->
+    <div class="glass-card p-8 mb-10">
+        <input type="file" id="fileInput" class="hidden" accept=".png,.jpg,.jpeg,.bmp,.webp,.dng,.heic">
+        
+        <div id="dropZone" class="drop-zone p-10 text-center relative flex flex-col items-center justify-center min-h-[280px]">
+            
+            <!-- Upload Prompt -->
+            <div id="uploadPrompt" class="flex flex-col items-center">
+                <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl text-emerald-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-1">Drag & Drop Plant Specimen Image</h3>
+                <p class="text-slate-400 text-xs mb-4">Supports PNG, JPG, JPEG, BMP, WEBP, HEIC, & DNG RAW (Max 50 MB)</p>
+                <button type="button" id="browseBtn" class="btn-primary text-xs px-5 py-2.5">
+                    <i class="fa-solid fa-folder-open mr-2"></i> Browse Local Files
+                </button>
+            </div>
+
+            <!-- Preview Container -->
+            <div id="previewContainer" class="hidden flex-col items-center justify-center relative">
+                <div class="relative group rounded-xl overflow-hidden border border-slate-700 max-h-[320px] max-w-[320px]">
+                    <img id="imagePreview" src="" alt="Specimen Preview" class="w-full h-full object-contain">
+                    <button type="button" id="removeBtn" class="absolute top-2 right-2 bg-slate-900/90 text-rose-400 hover:text-rose-300 w-8 h-8 rounded-full flex items-center justify-center border border-slate-700">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Analyze & Pay Button -->
+        <div id="actionArea" class="hidden mt-6 text-center">
+            <button type="button" id="analyzeBtn" class="btn-primary px-8 py-3.5 text-sm shadow-lg shadow-emerald-500/30">
+                <i id="btnSpinner" class="fa-solid fa-circle-notch fa-spin mr-2 hidden"></i>
+                <span id="btnText"><i class="fa-solid fa-credit-card mr-2"></i> Pay ₹99 & Analyze Specimen</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Results Card (Initially Hidden) -->
+    <div id="resultsCard" class="hidden glass-card p-8 transition-all duration-500">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-6 mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                    <i class="fa-solid fa-square-poll-vertical text-xl text-emerald-400"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Genetic Purity Report</h2>
+                    <span id="purityBadge" class="inline-block text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mt-1">
+                        <span>Purity Verdict</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6 text-xs text-slate-400 font-mono">
+                <div>Execution Time: <span id="resTime" class="text-white font-bold"></span></div>
+            </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-8">
+            <!-- Left Summary & Reasoning -->
+            <div class="space-y-4">
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold mb-1">Predicted Plant Variant</span>
+                    <div id="resPredictedClass" class="text-xl font-bold text-emerald-400 font-mono"></div>
+                </div>
+
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold mb-1">Neural Model Confidence</span>
+                    <div id="resConfidence" class="text-xl font-bold text-white font-mono"></div>
+                </div>
+
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold mb-1">Diagnostic Reasoning</span>
+                    <div id="resReason" class="text-sm text-slate-300"></div>
+                </div>
+            </div>
+
+            <!-- Right Visualization Chart -->
+            <div class="flex flex-col items-center justify-center p-4 bg-slate-950/80 rounded-xl border border-slate-800 relative">
+                <div class="w-48 h-48 relative">
+                    <canvas id="purityChart"></canvas>
+                </div>
+                <div class="flex items-center gap-6 mt-4 text-xs font-mono">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        <span class="text-slate-300">Pure: <span id="legendPureVal" class="text-white font-bold"></span></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                        <span class="text-slate-300">Impure/Off-type: <span id="legendImpureVal" class="text-white font-bold"></span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Class Probabilities Breakdown -->
+        <div class="bg-slate-950/80 p-6 rounded-xl border border-slate-800">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
+                Class Probability Distribution
+            </h3>
+
+            <div class="space-y-4 text-xs font-mono">
+                <!-- Female -->
+                <div>
+                    <div class="flex justify-between text-slate-300 mb-1">
+                        <span>Female Inbred Line</span>
+                        <span id="probFemaleVal" class="text-white font-bold">0.00%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                        <div id="probFemaleBar" class="progress-bar-inner bg-teal-400" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Hybrid -->
+                <div>
+                    <div class="flex justify-between text-slate-300 mb-1">
+                        <span>Pure Hybrid Seed</span>
+                        <span id="probHybridVal" class="text-emerald-400 font-bold">0.00%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                        <div id="probHybridBar" class="progress-bar-inner bg-emerald-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Male -->
+                <div>
+                    <div class="flex justify-between text-slate-300 mb-1">
+                        <span>Male Inbred Line</span>
+                        <span id="probMaleVal" class="text-white font-bold">0.00%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                        <div id="probMaleBar" class="progress-bar-inner bg-cyan-400" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Existing Script JS for prediction pipeline -->
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% endblock %}

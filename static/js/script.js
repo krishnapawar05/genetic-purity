@@ -211,45 +211,47 @@ document.addEventListener("DOMContentLoaded", () => {
         analyzeBtn.disabled = false;
         removeBtn.disabled = false;
         browseBtn.disabled = false;
-        btnText.textContent = "Analyze Plant Specimen";
+        dropZone.style.pointerEvents = "auto";
+        dropZone.classList.remove("disabled");
+        btnText.innerHTML = '<i class="fa-solid fa-credit-card mr-2"></i> Pay ₹99 & Analyze Specimen';
         btnSpinner.style.display = "none";
+        btnSpinner.classList.add("hidden");
     }
 
     // ==============================================================================
-    // REST API - PIPELINE INFERENCE EXECUTION WITH XHR PROGRESS
+    // REST API - RAZORPAY PAYMENT GATEWAY & INFERENCE PIPELINE GATING
     // ==============================================================================
     
     analyzeBtn.addEventListener('click', () => {
-        if (!activeFile) return;
+        if (!activeFile || analyzeBtn.disabled) return;
 
         // Set Loading & Disabled State
         analyzeBtn.disabled = true;
         removeBtn.disabled = true;
         browseBtn.disabled = true;
-        btnText.textContent = "Uploading (0%)...";
-        btnSpinner.style.display = "block";
+        dropZone.style.pointerEvents = "none";
+        dropZone.classList.add("disabled");
+        btnText.textContent = "Creating Order...";
+        btnSpinner.style.display = "inline-block";
+        btnSpinner.classList.remove("hidden");
         hideError();
         hideResults();
 
         const formData = new FormData();
         formData.append("image", activeFile);
 
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const xhr = new XMLHttpRequest();
 
-        // Track Real-time Upload Progress
         xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
                 const percentComplete = Math.round((e.loaded / e.total) * 100);
                 if (percentComplete < 100) {
-                    btnText.textContent = `Uploading (${percentComplete}%)...`;
+                    btnText.textContent = `Preparing Specimen (${percentComplete}%)...`;
                 } else {
-                    btnText.textContent = "Analyzing Specimen...";
+                    btnText.textContent = "Opening Payment Gateway...";
                 }
             }
-        };
-
-        xhr.upload.onload = () => {
-            btnText.textContent = "Analyzing Specimen...";
         };
 
         xhr.onload = function() {
@@ -260,40 +262,109 @@ document.addEventListener("DOMContentLoaded", () => {
                 data = null;
             }
 
-            if (xhr.status >= 200 && xhr.status < 300) {
-                if (data && data.success) {
-                    renderResults(data);
-                } else {
-                    showError((data && data.error) ? data.error : "Inference pipeline failed to process image.");
-                }
-            } else if (xhr.status === 413) {
-                showError((data && data.error) ? data.error : "Uploaded file is too large (maximum 50 MB). Please select a smaller file.");
-            } else if (xhr.status === 504 || xhr.status === 408) {
-                showError("Request timed out while processing. The server took too long to analyze the image. Please try again.");
-            } else if (xhr.status === 503) {
-                showError("Prediction service is currently busy. Please try again in a few moments.");
+            if (xhr.status >= 200 && xhr.status < 300 && data && data.success) {
+                // Step 2: Open Razorpay Standard Checkout Modal
+                openRazorpayCheckout(data);
             } else {
-                const msg = (data && data.error) ? data.error : `Server encountered an error (HTTP ${xhr.status}). Please try again.`;
+                const msg = (data && data.error) ? data.error : "Failed to initialize payment order.";
                 showError(msg);
+                resetAnalyzeButtonState();
             }
-            resetAnalyzeButtonState();
         };
 
         xhr.onerror = function() {
-            showError("Network error or connection lost during upload. Please check your internet connection.");
+            showError("Network connection error. Please check your internet connection.");
             resetAnalyzeButtonState();
         };
 
-        xhr.ontimeout = function() {
-            showError("Upload timed out. The server took too long to respond. Please try again.");
-            resetAnalyzeButtonState();
-        };
-
-        // Set 3 minutes timeout (180,000 ms) matching Gunicorn configuration
-        xhr.timeout = 180000;
-        xhr.open("POST", "/predict", true);
+        xhr.timeout = 60000;
+        xhr.open("POST", "/create-order", true);
+        if (csrfToken) {
+            xhr.setRequestHeader("X-CSRFToken", csrfToken);
+        }
         xhr.send(formData);
     });
+
+    function openRazorpayCheckout(orderData) {
+        btnText.textContent = "Awaiting Payment...";
+        
+        const options = {
+            "key": orderData.key_id,
+            "amount": orderData.amount,
+            "currency": orderData.currency,
+            "name": "Genetic Purity AI",
+            "description": "Plant Specimen Purity Analysis",
+            "order_id": orderData.order_id,
+            "handler": function (response) {
+                // Payment Successful! Now send parameters to server for HMAC verification & prediction execution
+                btnText.textContent = "Verifying Payment & Running Diagnostics...";
+                verifyPaymentAndPredict({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                    temp_token: orderData.temp_token,
+                    original_filename: orderData.original_filename
+                });
+            },
+            "modal": {
+                "ondismiss": function() {
+                    showError("Payment cancelled. Plant purity prediction was not performed.");
+                    resetAnalyzeButtonState();
+                }
+            },
+            "theme": {
+                "color": "#10b981"
+            }
+        };
+
+        try {
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function(response) {
+                const desc = response.error ? response.error.description : "Payment failed.";
+                showError(`Payment failed: ${desc}. Prediction blocked.`);
+                resetAnalyzeButtonState();
+            });
+            rzp.open();
+        } catch (e) {
+            console.error("Razorpay SDK Error:", e);
+            // Fallback for dev mode when Razorpay JS script is blocked or in dev bypass mode
+            showError("Opening payment gateway... (Dev Mode: Verifying direct order)");
+            verifyPaymentAndPredict({
+                razorpay_order_id: orderData.order_id,
+                razorpay_payment_id: "pay_dev_mock123",
+                razorpay_signature: "sig_dev_mock123",
+                temp_token: orderData.temp_token,
+                original_filename: orderData.original_filename
+            });
+        }
+    }
+
+    function verifyPaymentAndPredict(paymentPayload) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        fetch("/verify-payment", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify(paymentPayload)
+        })
+        .then(res => {
+            return res.json().then(data => ({ status: res.status, body: data }));
+        })
+        .then(resData => {
+            if (resData.status >= 200 && resData.status < 300 && resData.body.success) {
+                renderResults(resData.body);
+            } else {
+                showError(resData.body.error || "Payment verification failed. Fake callback blocked.");
+            }
+            resetAnalyzeButtonState();
+        })
+        .catch(err => {
+            showError("Network error during payment verification: " + err.message);
+            resetAnalyzeButtonState();
+        });
+    }
 
     // ==============================================================================
     // RESULT RENDERING AND CHART CREATION

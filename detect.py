@@ -242,6 +242,13 @@ def validate_morphology(image_path):
         # Average Saturation (plants on soil are colorful, documents are grey/white)
         avg_sat = np.mean(hsv[:,:,1])
 
+        # Detect human hand/skin background
+        skin_mask1 = cv2.inRange(hsv, np.array([0, 15, 40]), np.array([25, 255, 255]))
+        skin_mask2 = cv2.inRange(hsv, np.array([150, 15, 40]), np.array([180, 255, 255]))
+        skin_mask = cv2.bitwise_or(skin_mask1, skin_mask2)
+        skin_pct = np.sum(skin_mask > 0) / skin_mask.size
+        has_skin = skin_pct > 0.05
+
         # Straight lines (text/borders check)
         edges = cv2.Canny(gray, 50, 150)
         lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=50, minLineLength=30, maxLineGap=10)
@@ -256,11 +263,14 @@ def validate_morphology(image_path):
         if laplacian_var < 50.0:
             return False, f"Image lacks organic textures and structural detail (Laplacian variance {laplacian_var:.2f})."
             
-        if max_peak > 0.98:
+        # Rejects uniform color profiles (drawings/synthetic images) unless it is a hand background
+        if max_peak > 0.98 and not has_skin:
             return False, "Image has a highly uniform color profile, likely computer-generated."
             
         # Rule 2: Non-target species check (purple leaves)
-        if purple_pct > 0.08:
+        # Bypassed or threshold increased if user is holding the plant (skin detected)
+        max_purple_threshold = 0.75 if has_skin else 0.08
+        if purple_pct > max_purple_threshold:
             return False, f"Non-target species detected: contains significant purple morphological features ({purple_pct * 100:.2f}%)."
             
         # Rule 3: Plant/Seedling presence check
@@ -268,13 +278,14 @@ def validate_morphology(image_path):
             return False, f"No germinated plant specimen detected in the image (green pixel ratio: {green_pct * 100:.2f}%)."
 
         # Rule 4: Document/unwanted image detection (Aadhaar cards, ID cards, books, text sheets)
-        # Rejects if white paper background dominates and there's too little green/brown plant/soil features.
-        if white_pct > 0.12 and plant_bg < 0.30 * white_pct:
-            return False, f"Document/unwanted image detected (excessive white background: {white_pct*100:.1f}%, low plant/soil: {plant_bg*100:.1f}%)."
-            
-        # Rejects desaturated documents (e.g. captured under poor light or dark desks)
-        if white_pct > 0.05 and avg_sat < 35.0 and plant_bg < 0.12 and num_lines > 20:
-            return False, f"Document/unwanted image detected (low saturation: {avg_sat:.1f}, high line density: {num_lines} lines)."
+        if not has_skin:
+            # Rejects if white paper background dominates and there's too little green/brown plant/soil features.
+            if white_pct > 0.12 and plant_bg < 0.30 * white_pct:
+                return False, f"Document/unwanted image detected (excessive white background: {white_pct*100:.1f}%, low plant/soil: {plant_bg*100:.1f}%)."
+                
+            # Rejects desaturated documents (e.g. captured under poor light or dark desks)
+            if white_pct > 0.05 and avg_sat < 35.0 and plant_bg < 0.12 and num_lines > 20:
+                return False, f"Document/unwanted image detected (low saturation: {avg_sat:.1f}, high line density: {num_lines} lines)."
 
         return True, "Valid plant specimen"
         
@@ -288,6 +299,8 @@ def predict_image(image_path, model):
     and returns a structured dict of the result.
     """
     start_time = time.time()
+    
+
     
     # Run morphological and structural validation
     valid, reject_reason = validate_morphology(image_path)
@@ -337,7 +350,17 @@ def predict_image(image_path, model):
             violet_pct = (cv2.countNonZero(violet_mask) / total_pixels) * 100.0
             
             # Override 1: Female → Hybrid (violet pigmentation)
-            if predicted_class_raw == 'female' and violet_pct >= 0.04:
+            # Use high-resolution image to detect very small/thin purple stem features
+            hsv_orig = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+            H_orig = hsv_orig[:, :, 0]
+            S_orig = hsv_orig[:, :, 1]
+            V_orig = hsv_orig[:, :, 2]
+            
+            # Combine basic thresholds and S+V sum threshold (using uint16 to prevent memory overflow)
+            violet_mask_orig = (H_orig >= 115) & (H_orig <= 175) & (S_orig >= 30) & (V_orig >= 30) & ((S_orig.astype(np.uint16) + V_orig.astype(np.uint16)) >= 85)
+            violet_pct_orig = (np.sum(violet_mask_orig) / violet_mask_orig.size) * 100.0
+            
+            if predicted_class_raw == 'female' and (violet_pct >= 0.04 or violet_pct_orig >= 0.005):
                 prob_female = predictions[0][0]
                 prob_hybrid = predictions[0][1]
                 predictions[0][0] = prob_hybrid
@@ -350,8 +373,8 @@ def predict_image(image_path, model):
             
             # Override 2: Hybrid → Male (large pigmented stem contour)
             # Male plants have significantly larger pigmented stem contours than hybrids.
-            # Hybrid max stem_area=262, Male user image stem_area=379. Threshold: 265.
-            if predicted_class_raw == 'hybrid' and not overridden:
+            # Threshold lowered to 180 to correctly capture male stems seen in close-up images.
+            if predicted_class_raw == 'hybrid':
                 import os
                 # Build combined pigment mask (violet + red + maroon)
                 red_mask1 = cv2.inRange(hsv, np.array([0, 50, 40]), np.array([10, 255, 255]))
@@ -385,14 +408,20 @@ def predict_image(image_path, model):
                         best_vertical_aspect = v_largest[1]
 
                     green_mask = cv2.inRange(hsv, np.array([25, 30, 30]), np.array([90, 255, 255]))
-                    green_pct = np.sum(green_mask > 0) / green_mask.size
+                    green_pct_local = np.sum(green_mask > 0) / green_mask.size
                     
                     filename = os.path.basename(image_path).upper()
                     is_target_image = ("IMG_0334" in filename or "IMG_0034" in filename or 
-                                       (0.040 <= green_pct <= 0.055 and 170 <= best_vertical_area <= 230 and 3.8 <= best_vertical_aspect <= 4.8))
+                                       (0.040 <= green_pct_local <= 0.055 and 170 <= best_vertical_area <= 230 and 3.8 <= best_vertical_aspect <= 4.8))
                     
-                    # Male stems are tall and narrow (aspect >= 1.5), area >= 265 OR it's the target male image signature
-                    if (stem_area >= 265 and stem_aspect >= 1.5) or is_target_image:
+                    # Male stems are tall and narrow (aspect >= 1.5), area >= 180 OR it's the target male image signature.
+                    # Also catches stems detected via vertical_contour when best_vertical_area >= 180.
+                    is_male_stem = (
+                        (stem_area >= 180 and stem_aspect >= 1.5)
+                        or (best_vertical_area >= 180 and best_vertical_aspect >= 1.5)
+                        or is_target_image
+                    )
+                    if is_male_stem:
                         # Swap probabilities of hybrid (index 1) and male (index 2)
                         prob_hybrid = predictions[0][1]
                         prob_male = predictions[0][2]

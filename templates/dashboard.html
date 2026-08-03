@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Genetic Purity AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <!-- Header Banner -->
+    <div class="glass-card p-8 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+        <div class="absolute right-0 top-0 bottom-0 w-64 bg-gradient-to-l from-emerald-500/10 to-transparent pointer-events-none"></div>
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> Session Active
+            </div>
+            <h1 class="text-3xl font-extrabold text-white">Welcome, {{ current_user.firstName }} {{ current_user.lastName }}</h1>
+            <p class="text-slate-400 text-sm mt-1">Manage your plant purity testing workspace and review past specimen diagnostic logs.</p>
+        </div>
+        <a href="{{ url_for('main.test_purity') }}" class="btn-primary px-6 py-3 text-sm shadow-lg shadow-emerald-500/20">
+            <i class="fa-solid fa-flask-vial mr-2"></i> Start New Purity Test
+        </a>
+    </div>
+
+    <!-- Metrics Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="glass-card p-6 border-slate-800">
+            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Total Tests Executed</div>
+            <div class="text-3xl font-extrabold text-white font-mono">{{ stats.total_tests }}</div>
+            <div class="text-[11px] text-slate-400 mt-1">Recorded in MongoDB</div>
+        </div>
+
+        <div class="glass-card p-6 border-slate-800">
+            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Pure Variant Count</div>
+            <div class="text-3xl font-extrabold text-emerald-400 font-mono">{{ stats.pure_count }}</div>
+            <div class="text-[11px] text-slate-400 mt-1">Authentic Seed Samples</div>
+        </div>
+
+        <div class="glass-card p-6 border-slate-800">
+            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Genetic Purity Rate</div>
+            <div class="text-3xl font-extrabold text-teal-300 font-mono">{{ stats.pure_ratio }}%</div>
+            <div class="text-[11px] text-slate-400 mt-1">Overall Workspace Batch Purity</div>
+        </div>
+
+        <div class="glass-card p-6 border-slate-800">
+            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Neural Model Engine</div>
+            <div class="text-3xl font-extrabold text-cyan-400 font-mono text-xl">MobileNet</div>
+            <div class="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-semibold">
+                <i class="fa-solid fa-circle text-[8px]"></i> Online & Protected
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content: Profile & Recent Test History -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- User Profile Card -->
+        <div class="glass-card p-6 lg:col-span-1 h-fit">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-id-card text-emerald-400"></i> User Profile
+                </h3>
+                <span class="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                    {{ current_user.role }}
+                </span>
+            </div>
+
+            <div class="space-y-4 text-sm">
+                <div>
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold">Full Name</span>
+                    <span class="text-slate-200 font-medium text-base">{{ current_user.full_name }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold">Email Address</span>
+                    <span class="text-slate-200 font-mono text-sm">{{ current_user.email }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold">Mobile Number</span>
+                    <span class="text-slate-200 font-mono text-sm">{{ current_user.mobileNumber }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold">Verification Status</span>
+                    <span class="text-emerald-400 text-xs font-semibold flex items-center gap-1.5 mt-0.5">
+                        <i class="fa-solid fa-circle-check"></i> Verified Account
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Prediction Logs Table -->
+        <div class="glass-card p-6 lg:col-span-2">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-teal-400"></i> Recent Purity Analyses
+                </h3>
+                <span class="text-xs text-slate-400 font-mono">Stored in MongoDB</span>
+            </div>
+
+            {% if history %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="text-xs uppercase bg-slate-900/80 text-slate-400 border-b border-slate-800">
+                            <tr>
+                                <th class="py-3 px-4">Specimen File</th>
+                                <th class="py-3 px-4">Purity Verdict</th>
+                                <th class="py-3 px-4">Predicted Class</th>
+                                <th class="py-3 px-4">Confidence</th>
+                                <th class="py-3 px-4">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60 font-mono text-xs">
+                            {% for item in history %}
+                                <tr class="hover:bg-slate-900/40 transition-colors">
+                                    <td class="py-3.5 px-4 font-semibold text-white truncate max-w-[160px]" title="{{ item.filename }}">
+                                        <i class="fa-solid fa-file-image text-slate-400 mr-1.5"></i>{{ item.filename }}
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        {% if item.purity.lower().startswith('pure') and item.prediction != 'UNKNOWN' %}
+                                            <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                                {{ item.purity }}
+                                            </span>
+                                        {% elif item.prediction == 'UNKNOWN' or 'unknown' in item.purity.lower() %}
+                                            <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                                {{ item.purity }}
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                                {{ item.purity }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3.5 px-4 text-slate-200">{{ item.prediction }}</td>
+                                    <td class="py-3.5 px-4 font-bold text-white">{{ item.confidence }}</td>
+                                    <td class="py-3.5 px-4 text-slate-400">
+                                        {% if item.createdAt %}
+                                            {{ item.createdAt.strftime('%b %d, %H:%M') }}
+                                        {% else %}
+                                            Just now
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="w-12 h-12 mx-auto rounded-xl bg-slate-900 flex items-center justify-center text-slate-500 mb-3">
+                        <i class="fa-solid fa-flask-vial text-xl"></i>
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium">No plant purity tests recorded yet.</p>
+                    <p class="text-slate-400 text-xs mt-1 mb-4">Run your first crop specimen analysis to see history here.</p>
+                    <a href="{{ url_for('main.test_purity') }}" class="btn-primary text-xs px-4 py-2">
+                        Start First Test
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

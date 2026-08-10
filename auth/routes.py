@@ -1,9 +1,11 @@
-from flask import render_template, request, redirect, url_for, flash, session
+from flask import render_template, request, redirect, url_for, flash, session, make_response, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from . import auth_bp
 from models.user import User
 from services.sms_service import SMSService
 from utils.validators import validate_signup_input, validate_password_strength, validate_mobile
+from utils.date_utils import format_datetime
+from datetime import datetime, timezone
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -134,16 +136,65 @@ def login():
     return render_template('auth/login.html', login_method='email', form_data={})
 
 @auth_bp.route('/logout')
-@login_required
 def logout():
     reason = request.args.get('reason')
+    if current_user and current_user.is_authenticated and hasattr(current_user, 'id'):
+        try:
+            User.update_last_logout(current_user.id)
+        except Exception:
+            pass
+
     logout_user()
     session.clear()
+
+    redirect_target = url_for('auth.login') if reason == 'inactivity' else url_for('main.index')
+    response = make_response(redirect(redirect_target))
+
+    remember_cookie_name = current_app.config.get('REMEMBER_COOKIE_NAME', 'remember_token')
+    response.delete_cookie(remember_cookie_name)
+    response.delete_cookie(current_app.config.get('SESSION_COOKIE_NAME', 'session'))
+    
+    # Strictly prevent caching of logged out redirect response
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+
     if reason == 'inactivity':
         flash("Your session has expired due to inactivity. Please sign in again.", "warning")
-        return redirect(url_for('auth.login'))
-    flash("You have been logged out safely.", "info")
-    return redirect(url_for('main.index'))
+    else:
+        flash("You have been logged out safely.", "info")
+
+    return response
+
+@auth_bp.route('/api/session-status')
+def session_status():
+    if not current_user.is_authenticated:
+        return jsonify({
+            "authenticated": False,
+            "last_login": None,
+            "last_logout": None,
+            "login_formatted": "--",
+            "logout_formatted": "--",
+            "server_time": datetime.now(timezone.utc).isoformat()
+        })
+
+    login_dt = getattr(current_user, 'lastLogin', None)
+    logout_dt = getattr(current_user, 'lastLogout', None)
+
+    login_iso = login_dt.isoformat() if isinstance(login_dt, datetime) else (str(login_dt) if login_dt else None)
+    logout_iso = logout_dt.isoformat() if isinstance(logout_dt, datetime) else (str(logout_dt) if logout_dt else None)
+
+    return jsonify({
+        "authenticated": True,
+        "user_id": current_user.id,
+        "username": getattr(current_user, 'username', ''),
+        "full_name": getattr(current_user, 'full_name', ''),
+        "last_login": login_iso,
+        "last_logout": logout_iso,
+        "login_formatted": format_datetime(login_dt),
+        "logout_formatted": format_datetime(logout_dt),
+        "server_time": datetime.now(timezone.utc).isoformat()
+    })
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():

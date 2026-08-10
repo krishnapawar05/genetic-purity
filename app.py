@@ -122,6 +122,11 @@ def check_session_inactivity():
                 elapsed = (now - last_act).total_seconds()
                 if elapsed > timeout_seconds:
                     from flask_login import logout_user
+                    if current_user and hasattr(current_user, 'id'):
+                        try:
+                            User.update_last_logout(current_user.id)
+                        except Exception:
+                            pass
                     logout_user()
                     session.clear()
                     flash("Your session has expired due to inactivity. Please sign in again.", "warning")
@@ -137,6 +142,18 @@ def check_session_inactivity():
                 
         session['last_activity'] = now.isoformat()
         session.permanent = True
+
+@app.after_request
+def add_cache_control_headers(response):
+    """
+    Ensures HTML responses are never cached by the browser, guarantees
+    immediate reflection of authentication state (logged in vs logged out).
+    """
+    if response.mimetype == 'text/html':
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 # Register Blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')

@@ -21,6 +21,7 @@ class User(UserMixin):
         self.role = user_doc.get('role', 'user')
         self.customerUseCase = user_doc.get('customerUseCase', '')
         self.lastLogin = user_doc.get('lastLogin')
+        self.lastLogout = user_doc.get('lastLogout')
 
     def get_id(self):
         return self.id
@@ -186,6 +187,17 @@ class User(UserMixin):
             get_users_collection().update_one(
                 {'_id': ObjectId(user_id)},
                 {'$set': {'lastLogin': datetime.utcnow()}}
+            )
+            return True
+        except Exception:
+            return False
+
+    @classmethod
+    def update_last_logout(cls, user_id: str):
+        try:
+            get_users_collection().update_one(
+                {'_id': ObjectId(user_id)},
+                {'$set': {'lastLogout': datetime.utcnow()}}
             )
             return True
         except Exception:

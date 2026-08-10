@@ -94,8 +94,8 @@
                                 <p class="text-xs text-slate-400 font-mono uppercase tracking-wider">Signed in as</p>
                                 <p class="text-sm font-semibold text-white mt-0.5 truncate">{{ current_user.firstName }}</p>
                             </div>
-                            <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors"><i class="fa-solid fa-user w-4 text-center text-slate-500"></i> User Profile</a>
-                            <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors"><i class="fa-solid fa-gear w-4 text-center text-slate-500"></i> Account Settings</a>
+                            <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors"><i class="fa-solid fa-user w-4 text-center text-slate-500"></i> User Profile</a>
+                            <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors"><i class="fa-solid fa-gear w-4 text-center text-slate-500"></i> Account Settings</a>
                             <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors"><i class="fa-solid fa-gauge-high w-4 text-center text-slate-500"></i> Usage Details</a>
                             <a href="{{ url_for('main.customer_use_case') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors"><i class="fa-solid fa-seedling w-4 text-center text-slate-500"></i> Customer Use Case</a>
                             <div class="border-t border-slate-800 mt-1 pt-1">
@@ -132,8 +132,8 @@
             <a href="{{ url_for('main.history') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-white hover:bg-slate-900"><i class="fa-solid fa-clock-rotate-left text-emerald-400 w-4"></i> History</a>
             <a href="{{ url_for('main.payments') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-white hover:bg-slate-900"><i class="fa-solid fa-credit-card text-emerald-400 w-4"></i> Payments</a>
             <div class="border-t border-slate-800 pt-2 mt-1 space-y-1">
-                <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:bg-slate-900"><i class="fa-solid fa-user text-slate-500 w-4"></i> User Profile</a>
-                <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:bg-slate-900"><i class="fa-solid fa-gear text-slate-500 w-4"></i> Account Settings</a>
+                <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:bg-slate-900"><i class="fa-solid fa-user text-slate-500 w-4"></i> User Profile</a>
+                <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:bg-slate-900"><i class="fa-solid fa-gear text-slate-500 w-4"></i> Account Settings</a>
                 <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:bg-slate-900"><i class="fa-solid fa-gauge-high text-slate-500 w-4"></i> Usage Details</a>
                 <a href="{{ url_for('main.customer_use_case') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:bg-slate-900"><i class="fa-solid fa-seedling text-slate-500 w-4"></i> Customer Use Case</a>
                 <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-rose-400 hover:bg-slate-900"><i class="fa-solid fa-right-from-bracket w-4"></i> Logout</a>
@@ -291,6 +291,18 @@
             });
 
             resetSessionTimer();
+
+            // Realtime Session Polling Handler (checks every 15s if session was logged out in another window/tab)
+            setInterval(() => {
+                fetch("{{ url_for('auth.session_status') }}", { headers: { 'Accept': 'application/json' } })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.authenticated === false) {
+                            window.location.href = "{{ url_for('main.index') }}";
+                        }
+                    })
+                    .catch(() => {});
+            }, 15000);
         })();
     </script>
     {% endif %}

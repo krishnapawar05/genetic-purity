@@ -1,65 +1,71 @@
 {% extends "base.html" %}
 
-{% block title %}Genetic Purity AI - Next-Gen Crop Genetic Analysis{% endblock %}
+{% block title %}Gen Pure Vision - Next-Gen Crop Genetic Analysis{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
 <section class="relative overflow-hidden pt-12 pb-24 lg:pt-20 lg:pb-32">
     <!-- Glow Backdrop Effects -->
-    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none"></div>
-    <div class="absolute top-1/3 right-10 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div
+        class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none">
+    </div>
+    <div
+        class="absolute top-1/3 right-10 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none">
+    </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-8">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            Production MobileNet Neural Engine Active
-        </div>
+
 
         <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-tight">
-            Automated Plant <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Genetic Purity</span> Intelligence
+            <span
+                class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Genetic
+                Purity</span> Intelligence
         </h1>
 
-        <p class="max-w-3xl mx-auto text-lg sm:text-xl text-slate-300 font-normal mb-10 leading-relaxed">
-            Instantly evaluate hybrid seed authenticity and genetic variant ratios using our high-performance MobileNet neural inference middleware. Supporting standard images, HEIC, and RAW DNG formats.
-        </p>
+
 
         <!-- CTA Buttons -->
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
             {% if current_user.is_authenticated %}
-                <a href="{{ url_for('main.test_purity') }}" class="btn-primary text-base px-8 py-4 shadow-xl shadow-emerald-500/25">
-                    <i class="fa-solid fa-flask-vial text-lg mr-2"></i> Launch Purity Analysis
-                </a>
-                <a href="{{ url_for('main.dashboard') }}" class="btn-secondary text-base px-8 py-4">
-                    <i class="fa-solid fa-chart-pie mr-2"></i> View Dashboard
-                </a>
+            <a href="{{ url_for('main.test_purity') }}"
+                class="btn-primary text-base px-8 py-4 shadow-xl shadow-emerald-500/25">
+                <i class="fa-solid fa-flask-vial text-lg mr-2"></i> Launch Purity Analysis
+            </a>
+            <a href="{{ url_for('main.dashboard') }}" class="btn-secondary text-base px-8 py-4">
+                <i class="fa-solid fa-chart-pie mr-2"></i> View Dashboard
+            </a>
             {% else %}
-                <a href="{{ url_for('auth.signup') }}" class="btn-primary text-base px-8 py-4 shadow-xl shadow-emerald-500/25">
-                    <i class="fa-solid fa-rocket text-lg mr-2"></i> Get Started Free
-                </a>
-                <a href="{{ url_for('auth.login') }}" class="btn-secondary text-base px-8 py-4">
-                    <i class="fa-solid fa-right-to-bracket mr-2"></i> Login to Workspace
-                </a>
+            <a href="{{ url_for('auth.signup') }}"
+                class="btn-primary text-base px-8 py-4 shadow-xl shadow-emerald-500/25">
+                <i class="fa-solid fa-rocket text-lg mr-2"></i> Get Started Free
+            </a>
+            <a href="{{ url_for('auth.login') }}" class="btn-secondary text-base px-8 py-4">
+                <i class="fa-solid fa-right-to-bracket mr-2"></i> Login to Workspace
+            </a>
             {% endif %}
         </div>
 
         <!-- Metric highlights -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mt-16 pt-12 border-t border-slate-800/80">
             <div class="p-4 rounded-xl bg-slate-900/50 border border-slate-800">
-                <div class="text-3xl font-extrabold text-white font-mono">99.4%</div>
-                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold mt-1">Classification Accuracy</div>
+                <div class="text-3xl font-extrabold text-white font-mono">3</div>
+                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold mt-1">Plant Classes Detected
+                </div>
             </div>
             <div class="p-4 rounded-xl bg-slate-900/50 border border-slate-800">
-                <div class="text-3xl font-extrabold text-emerald-400 font-mono">&lt; 1.5s</div>
-                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold mt-1">Inference Speed</div>
+                <div class="text-3xl font-extrabold text-emerald-400 font-mono">7</div>
+                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold mt-1">Image Formats Supported
+                </div>
             </div>
             <div class="p-4 rounded-xl bg-slate-900/50 border border-slate-800">
-                <div class="text-3xl font-extrabold text-white font-mono">RAW / DNG</div>
-                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold mt-1">Format Pipeline</div>
+                <div class="text-3xl font-extrabold text-white font-mono">&lt; 2s</div>
+                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold mt-1">Inference Turnaround
+                </div>
             </div>
             <div class="p-4 rounded-xl bg-slate-900/50 border border-slate-800">
-                <div class="text-3xl font-extrabold text-emerald-400 font-mono">MongoDB</div>
-                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold mt-1">Secure User Store</div>
+                <div class="text-3xl font-extrabold text-emerald-400 font-mono">PDF</div>
+                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold mt-1">QR-Verified Report</div>
             </div>
         </div>
     </div>
@@ -70,45 +76,37 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-4">
-                    About The Middleware
-                </div>
                 <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">
-                    Designed for Agronomists, Seed Breeders & Precision Farming
+                    Designed for Agronomists, Seed Breeders &amp; Precision Farming
                 </h2>
                 <p class="text-slate-300 text-base leading-relaxed mb-6">
-                    Genetic Purity AI converts complex plant specimen imagery into actionable purity metrics. Utilizing custom MobileNet deep transfer learning architectures, our middleware classifies crop samples into exact purity thresholds instantly.
+                    Gen Pure Vision converts complex plant specimen imagery into actionable purity metrics — delivering
+                    instant, AI-powered classification of crop samples with confidence scoring and downloadable
+                    diagnostic reports.
                 </p>
                 <ul class="space-y-3 text-slate-300">
                     <li class="flex items-center gap-3">
                         <i class="fa-solid fa-circle-check text-emerald-400"></i>
-                        <span>Zero quality degradation memory-optimised image conversion</span>
+                        <span>Upload any image format — JPG, PNG, HEIC, RAW DNG &amp; more</span>
                     </li>
                     <li class="flex items-center gap-3">
                         <i class="fa-solid fa-circle-check text-emerald-400"></i>
-                        <span>Thread-safe multi-request inference thread locks</span>
+                        <span>Instant classification: Female, Male, or Hybrid plant type</span>
                     </li>
                     <li class="flex items-center gap-3">
                         <i class="fa-solid fa-circle-check text-emerald-400"></i>
-                        <span>Bcrypt encrypted user credentials with MongoDB Atlas backup</span>
+                        <span>Download a QR-verified PDF diagnostic report for every scan</span>
                     </li>
                 </ul>
             </div>
 
-            <div class="glass-card p-8 text-center relative overflow-hidden">
-                <div class="w-20 h-20 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-6">
-                    <i class="fa-solid fa-dna text-3xl text-emerald-400"></i>
-                </div>
-                <h3 class="text-2xl font-bold text-white mb-2">Automated Neural Diagnostics</h3>
-                <p class="text-slate-400 text-sm mb-6">
-                    Real-time class prediction, confidence scoring, and pure vs off-type probability breakdown.
-                </p>
-                <div class="bg-slate-950 p-4 rounded-xl text-left font-mono text-xs text-slate-300 border border-slate-800 space-y-2">
-                    <div class="text-emerald-400 font-bold">&gt; Neural Prediction Engine</div>
-                    <div>Confidence: <span class="text-white font-bold">98.84%</span></div>
-                    <div>Classification: <span class="text-emerald-400 font-bold">Pure Variant A</span></div>
-                    <div>Status: <span class="text-teal-300 font-bold font-mono">VERIFIED</span></div>
-                </div>
+            <!-- 3D Genetic Analysis Visualization -->
+            <div class="relative flex items-center justify-center">
+                <div class="absolute inset-0 rounded-3xl bg-emerald-500/5 blur-3xl pointer-events-none"></div>
+                <img src="{{ url_for('static', filename='img/genetic_analysis_viz.png') }}"
+                    alt="3D Genetic Analysis Visualization — plant with DNA helix and purity score overlay"
+                    class="float-viz relative z-10 w-full max-w-md rounded-2xl ring-1 ring-emerald-500/20 object-cover"
+                    loading="lazy">
             </div>
         </div>
     </div>
@@ -117,85 +115,196 @@
 <!-- Features Section -->
 <section id="features" class="py-24">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div
+            class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-4">
+            <i class="fa-solid fa-seedling text-xs"></i> Built for the Seed Industry
+        </div>
         <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Enterprise Features</h2>
         <p class="text-slate-400 text-lg max-w-2xl mx-auto mb-16">
-            Engineered for high-volume seed purity verification with production-grade security.
+            Purpose-built for agronomists, seed breeders, and commercial laboratories that demand accurate, audit-ready
+            genetic purity results.
         </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            <div class="glass-card p-8 glass-card-hover">
-                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-6">
-                    <i class="fa-solid fa-microscope text-xl text-emerald-400"></i>
+        <div class="grid grid-cols-5 md:grid-cols-3 gap-10 text-left">
+
+            <div class="glass-card p-8 glass-card-hover min-h-[280px]">
+                <div
+                    class="w-16 h-16 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-5">
+                    <i class="fa-solid fa-vial-circle-check text-2xl text-emerald-400"></i>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">MobileNet Deep Learning</h3>
+                <h3 class="text-lg font-bold text-white mb-2">Seed Quality Validation</h3>
                 <p class="text-slate-400 text-sm leading-relaxed">
-                    Lightweight convolutional neural network optimized for fast inference on crop leaf and seed characteristics.
+                    Instantly assess germinated seedling morphology to confirm seed lot integrity. Detect off-types and
+                    low-purity batches before they reach the field.
                 </p>
             </div>
 
-            <div class="glass-card p-8 glass-card-hover">
-                <div class="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center mb-6">
-                    <i class="fa-solid fa-file-image text-xl text-teal-400"></i>
+            <div class="glass-card p-8 glass-card-hover min-h-[280px]">
+                <div
+                    class="w-16 h-16 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center mb-5">
+                    <i class="fa-solid fa-dna text-2xl text-teal-400"></i>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">RAW & HEIC Native Support</h3>
+                <h3 class="text-lg font-bold text-white mb-2">Hybrid Purity Screening</h3>
                 <p class="text-slate-400 text-sm leading-relaxed">
-                    Automatic in-memory processing for iPhone HEIC images and DSLR Camera DNG RAW files without manual conversion.
+                    Classify specimens as Female, Male, or Hybrid parent types with AI confidence scoring. Flags
+                    pigmentation markers that distinguish pure hybrids from off-types.
                 </p>
             </div>
 
-            <div class="glass-card p-8 glass-card-hover">
-                <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-6">
-                    <i class="fa-solid fa-shield-halved text-xl text-cyan-400"></i>
+            <div class="glass-card p-8 glass-card-hover min-h-[280px]">
+                <div
+                    class="w-16 h-16 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-5">
+                    <i class="fa-solid fa-flask text-2xl text-cyan-400"></i>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">Secure User Authentication</h3>
+                <h3 class="text-lg font-bold text-white mb-2">Research Applications</h3>
                 <p class="text-slate-400 text-sm leading-relaxed">
-                    MongoDB Atlas user database with bcrypt password hashing, Flask-Login sessions, and SMS OTP recovery.
+                    Accelerate plant breeding research with repeatable AI-consistent classification. Export raw
+                    per-class probability scores for downstream statistical analysis.
                 </p>
             </div>
+
+            <div class="glass-card p-8 glass-card-hover min-h-[280px]">
+                <div
+                    class="w-16 h-16 rounded-xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center mb-5">
+                    <i class="fa-solid fa-industry text-2xl text-violet-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">Commercial Testing Workflows</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Designed for seed companies running large-scale purity checks. Track every scan, maintain payment
+                    audit trails, and export results for compliance.
+                </p>
+            </div>
+
         </div>
     </div>
 </section>
 
 <!-- How it Works Section -->
-<section id="how-it-works" class="py-24 bg-slate-900/40 border-t border-slate-800/80">
+<section id="how-it-works" class="py-24 bg-slate-900/40 border-t border-slate-800/80 overflow-hidden">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">How It Works</h2>
         <p class="text-slate-400 text-lg max-w-2xl mx-auto mb-16">
-            Four simple steps to verify crop genetic purity.
+            Five precise steps from specimen upload to a verified genetic purity report.
         </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div class="glass-card p-6 relative">
-                <div class="w-10 h-10 rounded-full bg-emerald-500 text-slate-950 font-extrabold flex items-center justify-center text-lg mx-auto mb-4">1</div>
-                <h4 class="text-lg font-bold text-white mb-2">Create Account</h4>
-                <p class="text-xs text-slate-400">Sign up with your mobile number and email to access your workspace.</p>
+        <!-- Process Flow Container -->
+        <div class="relative" id="process-flow">
+
+            <!-- Animated Connector Line (desktop only) -->
+            <div class="hidden lg:block absolute top-[28px] left-[10%] right-[10%] h-0.5 bg-slate-800 z-0">
+                <div id="flow-line"
+                    class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 via-cyan-400 via-violet-400 to-amber-400 origin-left scale-x-0 transition-transform duration-[1500ms] ease-in-out">
+                </div>
             </div>
 
-            <div class="glass-card p-6 relative">
-                <div class="w-10 h-10 rounded-full bg-emerald-500 text-slate-950 font-extrabold flex items-center justify-center text-lg mx-auto mb-4">2</div>
-                <h4 class="text-lg font-bold text-white mb-2">Upload Specimen</h4>
-                <p class="text-xs text-slate-400">Drag and drop any plant image, JPEG, PNG, HEIC, or RAW DNG file.</p>
-            </div>
+            <!-- Steps -->
+            <div class="relative z-10 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-6">
 
-            <div class="glass-card p-6 relative">
-                <div class="w-10 h-10 rounded-full bg-emerald-500 text-slate-950 font-extrabold flex items-center justify-center text-lg mx-auto mb-4">3</div>
-                <h4 class="text-lg font-bold text-white mb-2">Neural Analysis</h4>
-                <p class="text-xs text-slate-400">MobileNet processes the image and calculates class probabilities in under 2 seconds.</p>
-            </div>
+                <!-- Step 1 -->
+                <div class="process-step opacity-0 translate-y-8 transition-all duration-500 flex flex-col items-center text-center group"
+                    style="transition-delay:0ms">
+                    <div class="relative mb-5">
+                        <div
+                            class="w-14 h-14 rounded-full bg-slate-900 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center text-xl shadow-lg shadow-emerald-500/20 ring-4 ring-emerald-500/10 ring-offset-2 ring-offset-[#0b0f19] animate-pulse-ring group-hover:bg-emerald-500 group-hover:text-slate-950 transition-all duration-300">
+                            <i class="fa-solid fa-upload"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card p-5 w-full min-h-[90px] flex items-center justify-center">
+                        <h4 class="text-sm font-bold text-white leading-snug">Upload Crop Specimen</h4>
+                    </div>
+                </div>
 
-            <div class="glass-card p-6 relative">
-                <div class="w-10 h-10 rounded-full bg-emerald-500 text-slate-950 font-extrabold flex items-center justify-center text-lg mx-auto mb-4">4</div>
-                <h4 class="text-lg font-bold text-white mb-2">Download Result</h4>
-                <p class="text-xs text-slate-400">View detailed genetic purity percentage ratings and export verification records.</p>
+                <!-- Step 2 -->
+                <div class="process-step opacity-0 translate-y-8 transition-all duration-500 flex flex-col items-center text-center group"
+                    style="transition-delay:150ms">
+                    <div class="relative mb-5">
+                        <div
+                            class="w-14 h-14 rounded-full bg-slate-900 border-2 border-teal-500 text-teal-400 flex items-center justify-center text-xl shadow-lg shadow-teal-500/20 ring-4 ring-teal-500/10 ring-offset-2 ring-offset-[#0b0f19] group-hover:bg-teal-500 group-hover:text-slate-950 transition-all duration-300">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card p-5 w-full min-h-[90px] flex items-center justify-center">
+                        <h4 class="text-sm font-bold text-white leading-snug">Image Quality Validation</h4>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="process-step opacity-0 translate-y-8 transition-all duration-500 flex flex-col items-center text-center group"
+                    style="transition-delay:300ms">
+                    <div class="relative mb-5">
+                        <div
+                            class="w-14 h-14 rounded-full bg-slate-900 border-2 border-cyan-500 text-cyan-400 flex items-center justify-center text-xl shadow-lg shadow-cyan-500/20 ring-4 ring-cyan-500/10 ring-offset-2 ring-offset-[#0b0f19] group-hover:bg-cyan-500 group-hover:text-slate-950 transition-all duration-300">
+                            <i class="fa-solid fa-brain"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card p-5 w-full min-h-[90px] flex items-center justify-center">
+                        <h4 class="text-sm font-bold text-white leading-snug">AI Genetic Classification</h4>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="process-step opacity-0 translate-y-8 transition-all duration-500 flex flex-col items-center text-center group"
+                    style="transition-delay:450ms">
+                    <div class="relative mb-5">
+                        <div
+                            class="w-14 h-14 rounded-full bg-slate-900 border-2 border-violet-500 text-violet-400 flex items-center justify-center text-xl shadow-lg shadow-violet-500/20 ring-4 ring-violet-500/10 ring-offset-2 ring-offset-[#0b0f19] group-hover:bg-violet-500 group-hover:text-slate-950 transition-all duration-300">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card p-5 w-full min-h-[90px] flex items-center justify-center">
+                        <h4 class="text-sm font-bold text-white leading-snug">Purity Ratio Analysis</h4>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="process-step opacity-0 translate-y-8 transition-all duration-500 flex flex-col items-center text-center group"
+                    style="transition-delay:600ms">
+                    <div class="relative mb-5">
+                        <div
+                            class="w-14 h-14 rounded-full bg-slate-900 border-2 border-amber-500 text-amber-400 flex items-center justify-center text-xl shadow-lg shadow-amber-500/20 ring-4 ring-amber-500/10 ring-offset-2 ring-offset-[#0b0f19] group-hover:bg-amber-500 group-hover:text-slate-950 transition-all duration-300">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card p-5 w-full min-h-[90px] flex items-center justify-center">
+                        <h4 class="text-sm font-bold text-white leading-snug">Generate Detailed Report</h4>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
+
+    <script>
+        // Intersection Observer — trigger step animations + connector line when section is visible
+        (function () {
+            const steps = document.querySelectorAll('.process-step');
+            const flowLine = document.getElementById('flow-line');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Animate connector line
+                        if (flowLine) flowLine.classList.add('scale-x-100');
+                        // Stagger each step card
+                        steps.forEach(step => {
+                            step.classList.remove('opacity-0', 'translate-y-8');
+                        });
+                        observer.disconnect();
+                    }
+                });
+            }, { threshold: 0.2 });
+
+            const section = document.getElementById('process-flow');
+            if (section) observer.observe(section);
+        })();
+    </script>
 </section>
 
 <!-- Pricing Placeholder Section -->
 <section id="pricing" class="py-24">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-amber-500/10 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-4">
+        <div
+            class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-amber-500/10 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-4">
             <i class="fa-solid fa-lock text-xs"></i> Payments Coming Soon (Phase 2)
         </div>
         <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Flexible Plans</h2>
@@ -205,34 +314,46 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <!-- Basic Plan -->
-            <div class="glass-card p-8 opacity-75">
+            <div class="pricing-card glass-card p-8 border border-slate-800/80 transition-all duration-300 relative cursor-pointer">
                 <h3 class="text-xl font-bold text-white mb-2">Researcher Preview</h3>
-                <div class="text-3xl font-extrabold text-emerald-400 my-4">$0 <span class="text-sm font-normal text-slate-400">/ forever</span></div>
+                <div class="text-3xl font-extrabold text-emerald-400 my-4">₹0 <span
+                        class="text-sm font-normal text-slate-400">/ forever</span></div>
                 <p class="text-xs text-slate-400 mb-6">Ideal for individual researchers and trial testing.</p>
                 <ul class="text-sm space-y-3 text-slate-300 text-left mb-8">
                     <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i> Unlimited Image Scans</li>
                     <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i> MobileNet Neural Engine</li>
                     <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i> Standard JPEG/PNG Support</li>
                 </ul>
-                <button disabled class="w-full btn-secondary text-xs opacity-60 cursor-not-allowed">Active Plan</button>
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.customer_use_case') }}" class="explore-btn w-full btn-secondary text-center block text-xs font-semibold py-2.5">Explore More</a>
+                {% else %}
+                <a href="{{ url_for('auth.signup', next=url_for('main.customer_use_case')) }}" class="explore-btn w-full btn-secondary text-center block text-xs font-semibold py-2.5">Explore More</a>
+                {% endif %}
             </div>
 
             <!-- Pro Plan -->
-            <div class="glass-card p-8 border-emerald-500/40 relative">
-                <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-emerald-500 text-slate-950 font-extrabold text-[10px] rounded-full uppercase tracking-wider">Most Popular</div>
+            <div class="pricing-card glass-card p-8 border border-slate-800/80 transition-all duration-300 relative cursor-pointer">
+                <div
+                    class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-emerald-500 text-slate-950 font-extrabold text-[10px] rounded-full uppercase tracking-wider">
+                    Most Popular</div>
                 <h3 class="text-xl font-bold text-white mb-2">Agronomist Pro</h3>
-                <div class="text-3xl font-extrabold text-white my-4">$49 <span class="text-sm font-normal text-slate-400">/ month</span></div>
+                <div class="text-3xl font-extrabold text-white my-4">₹3,999 <span
+                        class="text-sm font-normal text-slate-400">/ month</span></div>
                 <p class="text-xs text-slate-400 mb-6">For commercial seed testing laboratories.</p>
                 <ul class="text-sm space-y-3 text-slate-300 text-left mb-8">
                     <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i> Everything in Researcher</li>
                     <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i> HEIC & RAW DNG Batch Uploads</li>
                     <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i> PDF Diagnostic Export</li>
                 </ul>
-                <button disabled class="w-full btn-secondary text-xs opacity-60 cursor-not-allowed">Payment Unlocks in Phase 2</button>
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.customer_use_case') }}" class="explore-btn w-full btn-secondary text-center block text-xs font-semibold py-2.5">Explore More</a>
+                {% else %}
+                <a href="{{ url_for('auth.signup', next=url_for('main.customer_use_case')) }}" class="explore-btn w-full btn-secondary text-center block text-xs font-semibold py-2.5">Explore More</a>
+                {% endif %}
             </div>
 
             <!-- Enterprise Plan -->
-            <div class="glass-card p-8 opacity-75">
+            <div class="pricing-card glass-card p-8 border border-slate-800/80 transition-all duration-300 relative cursor-pointer">
                 <h3 class="text-xl font-bold text-white mb-2">Enterprise Lab</h3>
                 <div class="text-3xl font-extrabold text-white my-4">Custom</div>
                 <p class="text-xs text-slate-400 mb-6">Dedicated deployment for agricultural enterprises.</p>
@@ -241,9 +362,60 @@
                     <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i> Custom Crop Model Training</li>
                     <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i> 24/7 Priority SLA</li>
                 </ul>
-                <button disabled class="w-full btn-secondary text-xs opacity-60 cursor-not-allowed">Payment Unlocks in Phase 2</button>
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.customer_use_case') }}" class="explore-btn w-full btn-secondary text-center block text-xs font-semibold py-2.5">Explore More</a>
+                {% else %}
+                <a href="{{ url_for('auth.signup', next=url_for('main.customer_use_case')) }}" class="explore-btn w-full btn-secondary text-center block text-xs font-semibold py-2.5">Explore More</a>
+                {% endif %}
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.pricing-card');
+
+            cards.forEach(card => {
+                const button = card.querySelector('.explore-btn');
+
+                const selectCard = () => {
+                    cards.forEach(c => {
+                        // Reset card styling to unselected dark appearance
+                        c.classList.remove('border-emerald-500', 'shadow-[0_0_25px_rgba(16,185,129,0.25)]');
+                        c.classList.add('border-slate-800/80');
+
+                        // Reset button styling to btn-secondary
+                        const btn = c.querySelector('.explore-btn');
+                        if (btn) {
+                            btn.classList.remove('btn-primary', 'shadow-lg', 'shadow-emerald-500/25');
+                            btn.classList.add('btn-secondary');
+                        }
+                    });
+
+                    // Set selected styling on clicked card (green border + subtle green glow)
+                    card.classList.remove('border-slate-800/80');
+                    card.classList.add('border-emerald-500', 'shadow-[0_0_25px_rgba(16,185,129,0.25)]');
+
+                    // Highlight button (green button)
+                    if (button) {
+                        button.classList.remove('btn-secondary');
+                        button.classList.add('btn-primary', 'shadow-lg', 'shadow-emerald-500/25');
+                    }
+                };
+
+                // Card click listener
+                card.addEventListener('click', function(e) {
+                    // If clicking the button itself, let the native link navigate but select first
+                    if (e.target.closest('.explore-btn')) {
+                        selectCard();
+                        return;
+                    }
+                    
+                    // Otherwise, just select the card
+                    selectCard();
+                });
+            });
+        });
+    </script>
 </section>
 {% endblock %}

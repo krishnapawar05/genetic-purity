@@ -1,7 +1,7 @@
 import re
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
-MOBILE_REGEX = re.compile(r'^\+?[0-9]{10,15}$')
+MOBILE_REGEX = re.compile(r'^\+?[0-9]{6,15}$')
 
 def validate_email(email: str) -> tuple[bool, str]:
     if not email or not email.strip():
@@ -16,7 +16,7 @@ def validate_mobile(mobile: str) -> tuple[bool, str]:
         return False, "Mobile number is required."
     clean_mobile = mobile.strip().replace(" ", "").replace("-", "")
     if not MOBILE_REGEX.match(clean_mobile):
-        return False, "Please enter a valid mobile number (10 to 15 digits)."
+        return False, "Please enter a valid mobile number (6 to 15 digits)."
     return True, ""
 
 def validate_password_strength(password: str) -> tuple[bool, str]:
@@ -37,6 +37,7 @@ def validate_signup_input(data: dict) -> tuple[bool, list[str]]:
     
     first_name = data.get('firstName', '').strip()
     last_name = data.get('lastName', '').strip()
+    username = data.get('username', '').strip()
     mobile = data.get('mobileNumber', '').strip()
     email = data.get('email', '').strip()
     password = data.get('password', '')
@@ -46,6 +47,10 @@ def validate_signup_input(data: dict) -> tuple[bool, list[str]]:
         errors.append("First name is required.")
     if not last_name:
         errors.append("Last name is required.")
+    if not username:
+        errors.append("Username is required.")
+    elif not username.isalnum() or len(username) < 3:
+        errors.append("Username must be at least 3 characters long and contain only alphanumeric characters.")
         
     valid_m, err_m = validate_mobile(mobile)
     if not valid_m:

@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta
 from bson import ObjectId
 from database.db import get_predictions_collection
@@ -15,6 +16,11 @@ class PredictionRecord:
         self.predictionTime = doc.get('predictionTime', '')
         self.status = doc.get('status', 'completed')
         self.createdAt = doc.get('createdAt')
+        
+        # Requirement 22 & 23 fields: Specimen Image Path, Verification Token, Crop Info
+        self.specimenPath = doc.get('specimenPath', '')
+        self.verificationToken = doc.get('verificationToken') or self.id
+        self.crop = doc.get('crop', 'Chilli / Plant Specimen')
         
         # Reliability classification assessment
         self.reliability = self._calculate_reliability()
@@ -41,8 +47,20 @@ class PredictionRecord:
             return None
 
     @classmethod
-    def create_record(cls, user_id: str, filename: str, result: dict, status: str = "completed"):
+    def get_by_verification_token(cls, token: str):
+        try:
+            preds_col = get_predictions_collection()
+            doc = preds_col.find_one({'verificationToken': token})
+            if not doc and ObjectId.is_valid(token):
+                doc = preds_col.find_one({'_id': ObjectId(token)})
+            return cls(doc) if doc else None
+        except Exception:
+            return None
+
+    @classmethod
+    def create_record(cls, user_id: str, filename: str, result: dict, status: str = "completed", specimen_path: str = "", crop: str = "Chilli / Plant Specimen"):
         now = datetime.utcnow()
+        v_token = secrets.token_hex(16)
         doc = {
             'userId': user_id,
             'filename': filename,
@@ -53,7 +71,10 @@ class PredictionRecord:
             'reason': result.get('reason', ''),
             'predictionTime': result.get('prediction_time', ''),
             'status': status,
-            'createdAt': now
+            'createdAt': now,
+            'verificationToken': v_token,
+            'specimenPath': specimen_path,
+            'crop': crop
         }
         
         preds_col = get_predictions_collection()

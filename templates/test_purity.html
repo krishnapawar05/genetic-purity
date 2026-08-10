@@ -41,8 +41,6 @@
         border-color: rgba(245, 158, 11, 0.5) !important;
         box-shadow: 0 0 35px -5px rgba(245, 158, 11, 0.2) !important;
     }
-    .status-online { background-color: rgba(16, 185, 129, 0.2); color: #34d399; }
-    .status-offline { background-color: rgba(244, 63, 94, 0.2); color: #fb7185; }
 </style>
 {% endblock %}
 
@@ -53,11 +51,12 @@
         <div>
             <div class="flex items-center gap-3 mb-1">
                 <h1 class="text-3xl font-extrabold text-white">Plant Genetic Purity Testing</h1>
-                <span id="serverStatusBadge" class="px-2.5 py-1 rounded-full text-xs font-mono font-semibold status-online">
-                    🟢 ONLINE
-                </span>
+                <div id="serverStatusBadge" class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wider transition-all duration-300 bg-emerald-500/10 text-emerald-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></span>
+                    <span>ONLINE</span>
+                </div>
             </div>
-            <p class="text-slate-400 text-sm">Upload crop specimen imagery for instant MobileNet neural classification.</p>
+            <p class="text-slate-400 text-sm">Upload Crop Specimen for Classification</p>
         </div>
         <a href="{{ url_for('main.dashboard') }}" class="btn-secondary text-xs px-4 py-2">
             <i class="fa-solid fa-arrow-left mr-1.5"></i> Back to Dashboard
@@ -74,7 +73,7 @@
 
     <!-- Upload Card -->
     <div class="glass-card p-8 mb-10">
-        <input type="file" id="fileInput" class="hidden" accept=".png,.jpg,.jpeg,.bmp,.webp,.dng,.heic">
+        <input type="file" id="fileInput" class="hidden" accept=".png,.jpg,.jpeg,.bmp,.webp,.dng,.heic,.heif">
         
         <div id="dropZone" class="drop-zone p-10 text-center relative flex flex-col items-center justify-center min-h-[280px]">
             
@@ -84,7 +83,7 @@
                     <i class="fa-solid fa-cloud-arrow-up text-2xl text-emerald-400"></i>
                 </div>
                 <h3 class="text-lg font-bold text-white mb-1">Drag & Drop Plant Specimen Image</h3>
-                <p class="text-slate-400 text-xs mb-4">Supports PNG, JPG, JPEG, BMP, WEBP, HEIC, & DNG RAW (Max 50 MB)</p>
+                <p class="text-slate-400 text-xs mb-4">Supports PNG, JPG, JPEG, BMP, WEBP, HEIC, HEIF, & DNG RAW (Max 50 MB)</p>
                 <button type="button" id="browseBtn" class="btn-primary text-xs px-5 py-2.5">
                     <i class="fa-solid fa-folder-open mr-2"></i> Browse Local Files
                 </button>
@@ -102,11 +101,11 @@
 
         </div>
 
-        <!-- Analyze & Pay Button -->
+        <!-- Analyze & Report Button -->
         <div id="actionArea" class="hidden mt-6 text-center">
             <button type="button" id="analyzeBtn" class="btn-primary px-8 py-3.5 text-sm shadow-lg shadow-emerald-500/30">
                 <i id="btnSpinner" class="fa-solid fa-circle-notch fa-spin mr-2 hidden"></i>
-                <span id="btnText"><i class="fa-solid fa-credit-card mr-2"></i> Pay ₹99 & Analyze Specimen</span>
+                <span id="btnText"><i class="fa-solid fa-file-pdf mr-2"></i> Get Report</span>
             </button>
         </div>
     </div>

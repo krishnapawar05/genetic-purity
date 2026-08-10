@@ -13,16 +13,20 @@ def signup():
     if request.method == 'POST':
         first_name = request.form.get('firstName', '')
         last_name = request.form.get('lastName', '')
-        mobile = request.form.get('mobileNumber', '')
+        username = request.form.get('username', '')
         email = request.form.get('email', '')
+        country_code = request.form.get('countryCode', '')
+        mobile = request.form.get('mobileNumber', '')
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirmPassword', '')
         
         form_data = {
             'firstName': first_name,
             'lastName': last_name,
-            'mobileNumber': mobile,
+            'username': username,
             'email': email,
+            'countryCode': country_code,
+            'mobileNumber': mobile,
             'password': password,
             'confirmPassword': confirm_password
         }
@@ -33,8 +37,11 @@ def signup():
             # Check duplicate email
             if User.get_by_email(email):
                 errors.append("An account with this email address already exists.")
+            # Check duplicate username
+            if User.get_by_username(username):
+                errors.append("An account with this username already exists.")
             # Check duplicate mobile
-            if User.get_by_mobile(mobile):
+            if User.get_by_mobile(mobile, country_code=country_code):
                 errors.append("An account with this mobile number already exists.")
                 
         if errors:
@@ -46,14 +53,21 @@ def signup():
         user = User.create_user(
             first_name=first_name,
             last_name=last_name,
+            username=username,
             mobile=mobile,
             email=email,
-            password=password
+            password=password,
+            country_code=country_code
         )
         
         # Log user in directly after signup
+        User.update_last_login(user.id)
         login_user(user)
-        flash("Account created successfully! Welcome to Genetic Purity AI.", "success")
+        flash("Account created successfully! Welcome to Gen Pure Vision.", "success")
+        
+        next_page = request.args.get('next')
+        if next_page and next_page.startswith('/'):
+            return redirect(next_page)
         return redirect(url_for('main.dashboard'))
         
     return render_template('auth/signup.html', form_data={})
@@ -64,20 +78,52 @@ def login():
         return redirect(url_for('main.dashboard'))
         
     if request.method == 'POST':
-        identifier = request.form.get('identifier', '')
-        password = request.form.get('password', '')
+        login_method = request.form.get('loginMethod', 'email')
         remember = True if request.form.get('rememberMe') else False
         
-        if not identifier or not password:
-            flash("Please provide both email/mobile and password.", "danger")
-            return render_template('auth/login.html', identifier=identifier)
+        user = None
+        error_msg = ""
+        
+        if login_method == 'username':
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
+            if not username or not password:
+                error_msg = "Please enter both username and password."
+            else:
+                user = User.get_by_username(username)
+                if not user or not user.check_password(password):
+                    error_msg = "Invalid username or password."
+                    
+        elif login_method == 'mobile':
+            country_code = request.form.get('countryCode', '').strip()
+            mobile = request.form.get('mobileNumber', '').strip()
+            password = request.form.get('password', '')
+            if not mobile or not password:
+                error_msg = "Please enter both mobile number and password."
+            else:
+                user = User.get_by_mobile(mobile, country_code=country_code)
+                if not user or not user.check_password(password):
+                    error_msg = "Invalid mobile number or password."
+                    
+        else: # email
+            email = request.form.get('email', '').strip()
+            password = request.form.get('password', '')
+            if not email or not password:
+                error_msg = "Please enter both email and password."
+            else:
+                user = User.get_by_email(email)
+                if not user or not user.check_password(password):
+                    error_msg = "Invalid email or password."
+                    
+        if error_msg:
+            flash(error_msg, 'danger')
+            return render_template('auth/login.html', login_method=login_method, form_data=request.form)
             
-        user = User.get_by_email_or_mobile(identifier)
-        if not user or not user.check_password(password):
-            flash("Invalid email/mobile number or password. Please try again.", "danger")
-            return render_template('auth/login.html', identifier=identifier)
-            
+        User.update_last_login(user.id)
         login_user(user, remember=remember)
+        from datetime import datetime, timezone
+        session['last_activity'] = datetime.now(timezone.utc).isoformat()
+        session.permanent = True
         flash(f"Welcome back, {user.firstName}!", "success")
         
         next_page = request.args.get('next')
@@ -85,12 +131,17 @@ def login():
             return redirect(next_page)
         return redirect(url_for('main.dashboard'))
         
-    return render_template('auth/login.html')
+    return render_template('auth/login.html', login_method='email', form_data={})
 
 @auth_bp.route('/logout')
 @login_required
 def logout():
+    reason = request.args.get('reason')
     logout_user()
+    session.clear()
+    if reason == 'inactivity':
+        flash("Your session has expired due to inactivity. Please sign in again.", "warning")
+        return redirect(url_for('auth.login'))
     flash("You have been logged out safely.", "info")
     return redirect(url_for('main.index'))
 
@@ -110,9 +161,13 @@ def forgot_password():
             
         # Send OTP
         success, msg, _ = SMSService.send_otp(mobile)
+        if not success:
+            flash(msg or "Unable to send OTP. Please try again later.", "danger")
+            return render_template('auth/forgot_password.html', mobile=mobile)
+
         session['reset_mobile'] = mobile.strip().replace(" ", "").replace("-", "")
         session['reset_user_id'] = user.id
-        flash(msg, "info" if success else "danger")
+        flash(msg, "info")
         return redirect(url_for('auth.verify_otp'))
         
     return render_template('auth/forgot_password.html')

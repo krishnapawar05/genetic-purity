@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Genetic Purity AI{% endblock %}
+{% block title %}Login - Gen Pure Vision{% endblock %}
 
 {% block content %}
 <div class="max-w-md mx-auto px-4 py-16">
@@ -10,16 +10,61 @@
                 <i class="fa-solid fa-right-to-bracket text-2xl text-emerald-400"></i>
             </div>
             <h2 class="text-2xl font-bold text-white">Welcome Back</h2>
-            <p class="text-slate-400 text-xs mt-1">Enter your credentials to access your testing workspace.</p>
+            <p class="text-slate-400 text-xs mt-1">Access your Gen Pure Vision workspace.</p>
         </div>
 
-        <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-5">
+        <!-- Login Tabs -->
+        <div class="flex border-b border-slate-800 mb-6" id="login-tabs">
+            <button type="button" data-tab="email" class="flex-1 pb-3 text-sm font-semibold text-center border-b-2 transition-all duration-200 border-transparent text-slate-400 hover:text-slate-200">Email</button>
+            <button type="button" data-tab="username" class="flex-1 pb-3 text-sm font-semibold text-center border-b-2 transition-all duration-200 border-transparent text-slate-400 hover:text-slate-200">Username</button>
+            <button type="button" data-tab="mobile" class="flex-1 pb-3 text-sm font-semibold text-center border-b-2 transition-all duration-200 border-transparent text-slate-400 hover:text-slate-200">Mobile</button>
+        </div>
+
+        <form id="login-form" method="POST" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}" class="space-y-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div>
-                <label for="identifier" class="form-label">Email or Mobile Number</label>
-                <input type="text" id="identifier" name="identifier" value="{{ identifier or '' }}" required class="form-input" placeholder="user@example.com or +1234567890" autofocus>
+            <!-- Hidden input to store active tab/login method -->
+            <input type="hidden" name="loginMethod" id="loginMethod" value="{{ login_method or 'email' }}">
+
+            <!-- Email Group -->
+            <div id="email-group" class="field-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" id="email" name="email" class="form-input" placeholder="user@example.com" value="{{ form_data.email or '' }}">
             </div>
 
+            <!-- Username Group -->
+            <div id="username-group" class="field-group hidden">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" id="username" name="username" class="form-input" placeholder="username123" value="{{ form_data.username or '' }}">
+            </div>
+
+            <!-- Mobile Group -->
+            <div id="mobile-group" class="field-group hidden">
+                <label for="mobileNumber" class="form-label">Mobile Number</label>
+                <div class="flex gap-2 relative">
+                    <!-- Country Selector Dropdown -->
+                    <div class="relative w-36" id="country-dropdown-container">
+                        <button type="button" id="country-dropdown-btn" class="form-input flex items-center justify-between gap-1 px-3 py-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none w-full">
+                            <span id="selected-flag-code">🇺🇸 +1</span>
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
+                        </button>
+                        <!-- Hidden country code storage -->
+                        <input type="hidden" id="countryCode" name="countryCode" value="{{ form_data.countryCode or '+1' }}">
+                        
+                        <!-- Searchable Dropdown List -->
+                        <div id="country-dropdown-list" class="absolute left-0 mt-2 w-64 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-50 hidden p-2">
+                            <input type="text" id="country-search" class="form-input py-1.5 text-xs mb-2 w-full bg-slate-900 border-slate-700" placeholder="Search country..." autocomplete="off">
+                            <div class="max-h-60 overflow-y-auto space-y-1" id="countries-list-container">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="tel" id="mobileNumber" name="mobileNumber" class="form-input flex-1" placeholder="6501234567" value="{{ form_data.mobileNumber or '' }}">
+                </div>
+                <span id="mobile-error" class="hidden text-rose-400 text-xs mt-1 block">Please enter a valid mobile number.</span>
+            </div>
+
+            <!-- Common Password field -->
             <div>
                 <div class="flex items-center justify-between mb-1">
                     <label for="password" class="form-label mb-0">Password</label>
@@ -42,8 +87,199 @@
 
         <div class="mt-8 pt-6 border-t border-slate-800 text-center text-xs text-slate-400">
             Don't have an account? 
-            <a href="{{ url_for('auth.signup') }}" class="text-emerald-400 font-semibold hover:underline">Sign up now</a>
+            <a href="{{ url_for('auth.signup', next=request.args.get('next', '')) }}" class="text-emerald-400 font-semibold hover:underline">Sign up now</a>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const countries = [
+        { name: "United States", code: "+1", flag: "🇺🇸" },
+        { name: "India", code: "+91", flag: "🇮🇳" },
+        { name: "United Kingdom", code: "+44", flag: "🇬🇧" },
+        { name: "United Arab Emirates", code: "+971", flag: "🇦🇪" },
+        { name: "Canada", code: "+1", flag: "🇨🇦" },
+        { name: "Australia", code: "+61", flag: "🇦🇺" },
+        { name: "Germany", code: "+49", flag: "🇩🇪" },
+        { name: "France", code: "+33", flag: "🇫🇷" },
+        { name: "Singapore", code: "+65", flag: "🇸🇬" },
+        { name: "Japan", code: "+81", flag: "🇯🇵" },
+        { name: "Brazil", code: "+55", flag: "🇧🇷" },
+        { name: "South Africa", code: "+27", flag: "🇿🇦" },
+        { name: "Saudi Arabia", code: "+966", flag: "🇸🇦" },
+        { name: "New Zealand", code: "+64", flag: "🇳🇿" },
+        { name: "Russia", code: "+7", flag: "🇷🇺" },
+        { name: "China", code: "+86", flag: "🇨🇳" },
+        { name: "Italy", code: "+39", flag: "🇮🇹" },
+        { name: "Spain", code: "+34", flag: "🇪🇸" },
+        { name: "Mexico", code: "+52", flag: "🇲🇽" },
+        { name: "Bangladesh", code: "+880", flag: "🇧🇩" },
+        { name: "Pakistan", code: "+92", flag: "🇵🇰" },
+        { name: "Nepal", code: "+977", flag: "🇳🇵" },
+        { name: "Sri Lanka", code: "+94", flag: "🇱🇰" }
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Tab switching logic
+        const tabs = document.querySelectorAll('#login-tabs button');
+        const methodInput = document.getElementById('loginMethod');
+        const groups = {
+            email: document.getElementById('email-group'),
+            username: document.getElementById('username-group'),
+            mobile: document.getElementById('mobile-group')
+        };
+        const inputs = {
+            email: document.getElementById('email'),
+            username: document.getElementById('username'),
+            mobile: document.getElementById('mobileNumber')
+        };
+
+        function switchTab(method) {
+            tabs.forEach(tab => {
+                if (tab.getAttribute('data-tab') === method) {
+                    tab.classList.remove('border-transparent', 'text-slate-400');
+                    tab.classList.add('border-emerald-500', 'text-emerald-400');
+                } else {
+                    tab.classList.remove('border-emerald-500', 'text-emerald-400');
+                    tab.classList.add('border-transparent', 'text-slate-400');
+                }
+            });
+
+            methodInput.value = method;
+
+            Object.keys(groups).forEach(key => {
+                if (key === method) {
+                    groups[key].classList.remove('hidden');
+                    inputs[key].setAttribute('required', 'required');
+                    inputs[key].focus();
+                } else {
+                    groups[key].classList.add('hidden');
+                    inputs[key].removeAttribute('required');
+                }
+            });
+        }
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                switchTab(tab.getAttribute('data-tab'));
+            });
+        });
+
+        // Initialize with default or loaded method
+        const initialVal = methodInput.value || 'email';
+        switchTab(initialVal);
+
+        // Searchable Country Dropdown Logic
+        const btn = document.getElementById('country-dropdown-btn');
+        const list = document.getElementById('country-dropdown-list');
+        const searchInput = document.getElementById('country-search');
+        const listContainer = document.getElementById('countries-list-container');
+        const selectedSpan = document.getElementById('selected-flag-code');
+        const hiddenInput = document.getElementById('countryCode');
+        const mobileInput = document.getElementById('mobileNumber');
+        const mobileError = document.getElementById('mobile-error');
+
+        function renderCountries(filter = "") {
+            listContainer.innerHTML = "";
+            const filtered = countries.filter(c => 
+                c.name.toLowerCase().includes(filter.toLowerCase()) || 
+                c.code.includes(filter)
+            );
+            
+            filtered.forEach(c => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg cursor-pointer transition-colors";
+                div.innerHTML = `<span>${c.flag} ${c.name}</span><span class="text-slate-500 font-mono">${c.code}</span>`;
+                div.addEventListener('click', () => {
+                    selectedSpan.innerHTML = `${c.flag} ${c.code}`;
+                    hiddenInput.value = c.code;
+                    list.classList.add('hidden');
+                    // update placeholder
+                    if (c.code === '+91') {
+                        mobileInput.placeholder = "9876543210";
+                    } else if (c.code === '+44') {
+                        mobileInput.placeholder = "7123456789";
+                    } else {
+                        mobileInput.placeholder = "6501234567";
+                    }
+                });
+                listContainer.appendChild(div);
+            });
+        }
+
+        // Set initial flag and code based on input or default to +1
+        const initialCode = hiddenInput.value || '+1';
+        const match = countries.find(c => c.code === initialCode);
+        if (match) {
+            selectedSpan.innerHTML = `${match.flag} ${match.code}`;
+        }
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            list.classList.toggle('hidden');
+            if (!list.classList.contains('hidden')) {
+                searchInput.value = "";
+                renderCountries("");
+                searchInput.focus();
+            }
+        });
+
+        searchInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            renderCountries(e.target.value);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#country-dropdown-container')) {
+                list.classList.add('hidden');
+            }
+        });
+
+        // Form submit cleanup and validation
+        const form = document.getElementById('login-form');
+        form.addEventListener('submit', (e) => {
+            if (methodInput.value === 'mobile') {
+                let mobileVal = mobileInput.value.trim().replace(/\s+/g, '').replace(/-/g, '');
+                const selectedCode = hiddenInput.value;
+                const cleanCC = selectedCode.replace('+', '');
+
+                // De-duplicate country code if typed in the input
+                if (mobileVal.startsWith(selectedCode)) {
+                    mobileVal = mobileVal.substring(selectedCode.length);
+                } else if (mobileVal.startsWith('+' + cleanCC)) {
+                    mobileVal = mobileVal.substring(('+' + cleanCC).length);
+                } else if (mobileVal.startsWith(cleanCC)) {
+                    mobileVal = mobileVal.substring(cleanCC.length);
+                }
+
+                // Remove any leading zero
+                if (mobileVal.startsWith('0') && mobileVal.length > 5) {
+                    mobileVal = mobileVal.substring(1);
+                }
+
+                // Validate that the remaining characters are digits and length is reasonable (6 to 15)
+                if (!/^\d{6,15}$/.test(mobileVal)) {
+                    e.preventDefault();
+                    mobileError.textContent = "Please enter a valid mobile number (digits only, 6-15 characters).";
+                    mobileError.classList.remove('hidden');
+                    mobileInput.focus();
+                    return;
+                } else {
+                    mobileError.classList.add('hidden');
+                }
+
+                // Write cleaned mobile number back to the input before submitting
+                mobileInput.value = mobileVal;
+            }
+        });
+
+        renderCountries();
+    });
+</script>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 {% endblock %}

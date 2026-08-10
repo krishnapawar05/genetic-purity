@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Payment History - Gen Pure Vision{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-800/80 pb-6 mb-8">
+        <div>
+            <div
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                <i class="fa-solid fa-credit-card"></i> Billing Center
+            </div>
+            <h1 class="text-4xl font-extrabold text-white tracking-tight">Payment Logs</h1>
+            <p class="text-slate-400 text-sm mt-1">Audit billing history, verify transaction receipts, and view payment
+                states.</p>
+        </div>
+        <!-- <a href="{{ url_for('main.test_purity') }}" class="btn-primary text-sm px-6 py-3 font-semibold shadow-md shadow-emerald-500/10">
+            <i class="fa-solid fa-flask-vial mr-2"></i> Start New Purity Test
+        </a> -->
+    </div>
+
+    <!-- Payments Summary Statistics Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div class="glass-card p-5 border-slate-800 bg-slate-950/20">
+            <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Total Spent</div>
+            <div class="text-2xl font-extrabold text-white font-mono">₹{{ total_spent }}</div>
+        </div>
+
+        <div class="glass-card p-5 border-slate-800 bg-slate-950/20">
+            <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Transactions</div>
+            <div class="text-2xl font-extrabold text-white font-mono">{{ total_transactions }}</div>
+        </div>
+
+        <div class="glass-card p-5 border-emerald-500/20 bg-emerald-500/5">
+            <div class="text-[11px] text-emerald-400 font-semibold uppercase tracking-wider mb-1">Successful</div>
+            <div class="text-2xl font-extrabold text-emerald-400 font-mono" id="stats-successful">{{ successful_count }}
+            </div>
+        </div>
+
+        <div class="glass-card p-5 border-rose-500/20 bg-rose-500/5">
+            <div class="text-[11px] text-rose-400 font-semibold uppercase tracking-wider mb-1">Cancelled/Failed</div>
+            <div class="text-2xl font-extrabold text-rose-400 font-mono" id="stats-failed">{{ failed_count }}</div>
+        </div>
+
+        <div class="glass-card p-5 border-amber-500/20 bg-amber-500/5">
+            <div class="text-[11px] text-amber-400 font-semibold uppercase tracking-wider mb-1">Pending</div>
+            <div class="text-2xl font-extrabold text-amber-400 font-mono" id="stats-pending">{{ pending_count }}</div>
+        </div>
+    </div>
+
+    <!-- Transaction Logs Card -->
+    <div class="glass-card p-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-receipt text-emerald-400"></i> Razorpay Payment Transaction History
+            </h3>
+            <span class="text-xs text-slate-500 font-mono">Real-time status updates enabled</span>
+        </div>
+
+        {% if payments %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+                <thead class="text-xs uppercase bg-slate-900/80 text-slate-400 border-b border-slate-800">
+                    <tr>
+                        <th class="py-3.5 px-4">Order ID</th>
+                        <th class="py-3.5 px-4">Payment ID</th>
+                        <th class="py-3.5 px-4">Amount</th>
+                        <th class="py-3.5 px-4">Status</th>
+                        <th class="py-3.5 px-4">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 font-mono text-xs" id="payments-tbody">
+                    {% for pmt in payments %}
+                    <tr class="hover:bg-slate-900/40 transition-colors" data-order-id="{{ pmt.orderId }}">
+                        <td class="py-3.5 px-4 text-slate-300">{{ pmt.orderId }}</td>
+                        <td class="py-3.5 px-4 font-bold text-white payment-id-cell">{{ pmt.paymentId if pmt.paymentId
+                            else 'N/A' }}</td>
+                        <td class="py-3.5 px-4 text-emerald-400 font-bold">₹{{ pmt.amount }} {{ pmt.currency }}</td>
+                        <td class="py-3.5 px-4 status-cell" data-order-id="{{ pmt.orderId }}">
+                            {% if pmt.status == 'paid' %}
+                            <span
+                                class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                Successful
+                            </span>
+                            {% elif pmt.status == 'failed' %}
+                            <span
+                                class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                Cancelled Payment
+                            </span>
+                            {% else %}
+                            <span
+                                class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-400">
+                            {% if pmt.createdAt %}
+                            {{ pmt.createdAt | format_datetime }}
+                            {% else %}
+                            Recent
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-slate-400 text-sm" id="empty-state">
+            <div
+                class="w-12 h-12 mx-auto rounded-full bg-slate-900 flex items-center justify-center text-slate-600 mb-3 border border-slate-800">
+                <i class="fa-solid fa-receipt text-lg"></i>
+            </div>
+            No payment transaction logs recorded yet.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const statsSuccessful = document.getElementById('stats-successful');
+        const statsFailed = document.getElementById('stats-failed');
+        const statsPending = document.getElementById('stats-pending');
+
+        function refreshPaymentStatuses() {
+            fetch('/api/payment-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.payments) {
+                        let successfulCount = 0;
+                        let failedCount = 0;
+                        let pendingCount = 0;
+
+                        data.payments.forEach(pmt => {
+                            // Update counts
+                            if (pmt.status === 'Successful') successfulCount++;
+                            else if (pmt.status === 'Cancelled Payment') failedCount++;
+                            else pendingCount++;
+
+                            // Update corresponding table cell if present
+                            const cell = document.querySelector(`.status-cell[data-order-id="${pmt.orderId}"]`);
+                            if (cell) {
+                                let badgeHtml = '';
+                                if (pmt.status === 'Successful') {
+                                    badgeHtml = `
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                            Successful
+                                        </span>
+                                    `;
+                                } else if (pmt.status === 'Cancelled Payment') {
+                                    badgeHtml = `
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                            Cancelled Payment
+                                        </span>
+                                    `;
+                                } else {
+                                    badgeHtml = `
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                            Pending
+                                        </span>
+                                    `;
+                                }
+                                if (cell.innerHTML.trim().replace(/\s+/g, ' ') !== badgeHtml.trim().replace(/\s+/g, ' ')) {
+                                    cell.innerHTML = badgeHtml;
+                                }
+
+                                const row = cell.closest('tr');
+                                if (row && pmt.paymentId !== 'N/A') {
+                                    const paymentIdCell = row.querySelector('.payment-id-cell');
+                                    if (paymentIdCell && paymentIdCell.textContent.trim() === 'N/A') {
+                                        paymentIdCell.textContent = pmt.paymentId;
+                                    }
+                                }
+                            }
+                        });
+
+                        // Update summary cards
+                        if (statsSuccessful) statsSuccessful.textContent = successfulCount;
+                        if (statsFailed) statsFailed.textContent = failedCount;
+                        if (statsPending) statsPending.textContent = pendingCount;
+                    }
+                })
+                .catch(err => console.error("Error refreshing payment statuses:", err));
+        }
+
+        // Run immediately and then poll every 5 seconds
+        refreshPaymentStatuses();
+        setInterval(refreshPaymentStatuses, 5000);
+    });
+</script>
+{% endblock %}

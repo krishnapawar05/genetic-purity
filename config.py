@@ -4,7 +4,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 
 # Load environment variables from .env file before reading
-load_dotenv()
+load_dotenv(override=True)
 
 # Read MongoDB configuration strictly from environment variables
 MONGO_URI = os.getenv("MONGO_URI")
@@ -31,14 +31,16 @@ class Config:
     TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
     TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
     TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', '')
+    TWILIO_VERIFY_SERVICE_SID = os.getenv('TWILIO_VERIFY_SERVICE_SID', '')
     
     # Razorpay Payment Gateway Configuration
     RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', 'rzp_test_sampleKeyId')
     RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', 'sampleKeySecret')
     ANALYSIS_PRICE_INR = int(os.getenv('ANALYSIS_PRICE_INR', '99'))
     
-    # Session & Cookie Security
-    PERMANENT_SESSION_LIFETIME = timedelta(days=7)
+    # Session & Cookie Security (Requirement 26)
+    SESSION_TIMEOUT_MINUTES = int(os.getenv('SESSION_TIMEOUT_MINUTES', '30'))
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=SESSION_TIMEOUT_MINUTES)
     REMEMBER_COOKIE_DURATION = timedelta(days=14)
     SESSION_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_HTTPONLY = True

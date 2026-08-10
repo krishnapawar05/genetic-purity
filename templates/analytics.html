@@ -13,9 +13,9 @@
             <h1 class="text-3xl font-extrabold text-white">Analytics & Transaction Logs</h1>
             <p class="text-slate-400 text-sm mt-1">Review specimen breakdown statistics, search past predictions, and audit payment receipts.</p>
         </div>
-        <a href="{{ url_for('main.test_purity') }}" class="btn-primary text-xs px-5 py-2.5 shadow-lg shadow-emerald-500/25">
+        <!-- <a href="{{ url_for('main.test_purity') }}" class="btn-primary text-xs px-5 py-2.5 shadow-lg shadow-emerald-500/25">
             <i class="fa-solid fa-flask-vial mr-1.5"></i> Run Purity Test
-        </a>
+        </a> -->
     </div>
 
     <!-- Analytics Breakdown Counters Grid -->
@@ -31,7 +31,7 @@
         </div>
 
         <div class="glass-card p-5 border-teal-500/30">
-            <div class="text-[11px] text-teal-400 font-semibold uppercase tracking-wider mb-1">Female Inbred</div>
+            <div class="text-[11px] text-teal-400 font-semibold uppercase tracking-wider mb-1">Female</div>
             <div class="text-2xl font-extrabold text-teal-400 font-mono">{{ stats.female_count }}</div>
         </div>
 
@@ -48,21 +48,20 @@
 
     <!-- Search & Filter Bar -->
     <div class="glass-card p-6 mb-8">
-        <form method="GET" action="{{ url_for('main.analytics') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <form id="search-filter-form" onsubmit="event.preventDefault();" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="sm:col-span-2 relative">
-                <input type="text" name="q" value="{{ q }}" placeholder="Search by specimen filename, predicted class, or purity verdict..." class="form-input pl-10 text-sm">
+                <input type="text" name="q" id="search-input" value="{{ q }}" placeholder="Search by specimen filename, predicted class, or purity verdict..." class="form-input pl-10 text-sm">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
             </div>
 
-            <div class="flex gap-2">
-                <select name="class_filter" class="form-input text-sm">
+            <div>
+                <select name="class_filter" id="class-filter" class="form-input text-sm w-full">
                     <option value="all" {% if class_filter == 'all' %}selected{% endif %}>All Classes</option>
                     <option value="hybrid" {% if class_filter == 'hybrid' %}selected{% endif %}>Pure Hybrid</option>
                     <option value="female" {% if class_filter == 'female' %}selected{% endif %}>Female Inbred</option>
                     <option value="male" {% if class_filter == 'male' %}selected{% endif %}>Male Inbred</option>
                     <option value="unknown" {% if class_filter == 'unknown' %}selected{% endif %}>Unknown</option>
                 </select>
-                <button type="submit" class="btn-primary text-xs px-5">Filter</button>
             </div>
         </form>
     </div>
@@ -116,7 +115,7 @@
                                 <td class="py-3.5 px-4 text-slate-400">{{ item.reliability }}</td>
                                 <td class="py-3.5 px-4 text-slate-400">
                                     {% if item.createdAt %}
-                                        {{ item.createdAt.strftime('%b %d, %H:%M') }}
+                                        {{ item.createdAt | format_datetime }}
                                     {% else %}
                                         Just now
                                     {% endif %}
@@ -164,24 +163,24 @@
                                 <td class="py-3.5 px-4 text-slate-300">{{ pmt.orderId }}</td>
                                 <td class="py-3.5 px-4 font-bold text-white">{{ pmt.paymentId if pmt.paymentId else 'N/A' }}</td>
                                 <td class="py-3.5 px-4 text-emerald-400 font-bold">₹{{ pmt.amount }} {{ pmt.currency }}</td>
-                                <td class="py-3.5 px-4">
+                                <td class="py-3.5 px-4 status-cell" data-order-id="{{ pmt.orderId }}">
                                     {% if pmt.status == 'paid' %}
                                         <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                            PAID VERIFIED
+                                            Successful
                                         </span>
                                     {% elif pmt.status == 'failed' %}
                                         <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                                            FAILED
+                                            Cancelled Payment
                                         </span>
                                     {% else %}
                                         <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                                            PENDING
+                                            Pending
                                         </span>
                                     {% endif %}
                                 </td>
                                 <td class="py-3.5 px-4 text-slate-400">
                                     {% if pmt.createdAt %}
-                                        {{ pmt.createdAt.strftime('%b %d, %Y %H:%M') }}
+                                        {{ pmt.createdAt | format_datetime }}
                                     {% else %}
                                         Recent
                                     {% endif %}
@@ -198,4 +197,166 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('search-input');
+        const filterSelect = document.getElementById('class-filter');
+        const tbody = document.querySelector('table tbody');
+        const recordsCountSpan = document.querySelector('.glass-card p-6 h3 + span');
+
+        if (!tbody) return;
+        
+        // Parse current DOM rows into a structured JavaScript array
+        const rows = Array.from(tbody.querySelectorAll('tr')).map(row => {
+            const cells = row.querySelectorAll('td');
+            return {
+                element: row,
+                filename: cells[0].textContent.trim(),
+                verdict: cells[1].textContent.trim(),
+                predClass: cells[2].textContent.trim(),
+                confidence: cells[3].textContent.trim(),
+                reliability: cells[4].textContent.trim(),
+                date: cells[5].textContent.trim()
+            };
+        });
+
+        function performFilter() {
+            const query = searchInput.value.toLowerCase().trim();
+            const selectedClass = filterSelect.value;
+
+            // Filter the records array
+            const filteredRows = rows.filter(row => {
+                const predClass = row.predClass.toLowerCase();
+                const verdict = row.verdict.toLowerCase();
+
+                // Dropdown class filter validation
+                let matchesClass = false;
+                if (selectedClass === 'all') {
+                    matchesClass = true;
+                } else if (selectedClass === 'hybrid') {
+                    matchesClass = verdict.includes('pure') || predClass.includes('hybrid');
+                } else if (selectedClass === 'female') {
+                    matchesClass = predClass.includes('female');
+                } else if (selectedClass === 'male') {
+                    matchesClass = predClass.includes('male');
+                } else if (selectedClass === 'unknown') {
+                    matchesClass = predClass.includes('unknown') || verdict.includes('unknown');
+                }
+
+                if (!matchesClass) return false;
+
+                // Query text search validation
+                if (!query) return true;
+
+                const targetFields = [
+                    row.filename.toLowerCase(),
+                    row.verdict.toLowerCase(),
+                    predClass,
+                    row.reliability.toLowerCase(),
+                    row.date.toLowerCase()
+                ];
+
+                return targetFields.some(field => {
+                    if (!field.includes(query)) return false;
+
+                    // Address overlap where "female" includes substring "male"
+                    if (query.includes('male') && !query.includes('female')) {
+                        const cleanedField = field.replace(/female/g, '___');
+                        return cleanedField.includes(query);
+                    }
+                    return true;
+                });
+            });
+
+            // Clean and render ONLY the filtered records array into the table body
+            tbody.innerHTML = '';
+            if (filteredRows.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td colspan="7" class="text-center py-12 text-slate-400 text-sm">
+                        No matching records found
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            } else {
+                filteredRows.forEach(row => {
+                    tbody.appendChild(row.element);
+                    // Add smooth transition effects
+                    row.element.style.opacity = '0';
+                    row.element.style.transform = 'scale(0.98)';
+                    row.element.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                    requestAnimationFrame(() => {
+                        row.element.style.opacity = '1';
+                        row.element.style.transform = 'scale(1)';
+                    });
+                });
+            }
+
+            // Update records count label based on filtered array length
+            if (recordsCountSpan) {
+                recordsCountSpan.textContent = `Records: ${filteredRows.length}`;
+            }
+        }
+
+        // Attach event listeners for real-time search/filter
+        searchInput.addEventListener('input', performFilter);
+        filterSelect.addEventListener('change', performFilter);
+
+        // Run filter initially on load
+        performFilter();
+
+        // Periodically refresh payment statuses without reloading the page
+        function refreshPaymentStatuses() {
+            fetch('/api/payment-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.payments) {
+                        data.payments.forEach(pmt => {
+                            const cell = document.querySelector(`.status-cell[data-order-id="${pmt.orderId}"]`);
+                            if (cell) {
+                                let badgeHtml = '';
+                                if (pmt.status === 'Successful') {
+                                    badgeHtml = `
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                            Successful
+                                        </span>
+                                    `;
+                                } else if (pmt.status === 'Cancelled Payment') {
+                                    badgeHtml = `
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                            Cancelled Payment
+                                        </span>
+                                    `;
+                                } else {
+                                    badgeHtml = `
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                            Pending
+                                        </span>
+                                    `;
+                                }
+                                if (cell.innerHTML.trim().replace(/\s+/g, ' ') !== badgeHtml.trim().replace(/\s+/g, ' ')) {
+                                    cell.innerHTML = badgeHtml;
+                                }
+                                
+                                const row = cell.closest('tr');
+                                if (row && pmt.paymentId !== 'N/A') {
+                                    const paymentIdCell = row.cells[1];
+                                    if (paymentIdCell && paymentIdCell.textContent.trim() === 'N/A') {
+                                        paymentIdCell.textContent = pmt.paymentId;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                })
+                .catch(err => console.error("Error refreshing payment statuses:", err));
+        }
+
+        refreshPaymentStatuses();
+        setInterval(refreshPaymentStatuses, 5000);
+    });
+</script>
 {% endblock %}

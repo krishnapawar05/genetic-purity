@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Internal Server Error (500) - Genetic Purity AI{% endblock %}
+{% block title %}Internal Server Error (500) - Gen Pure Vision{% endblock %}
 
 {% block content %}
 <div class="max-w-md mx-auto px-4 py-20 text-center">
     <div class="glass-card p-10">
-        <div class="w-16 h-16 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-6">
+        <div
+            class="w-16 h-16 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-6">
             <i class="fa-solid fa-server text-3xl text-rose-400"></i>
         </div>
         <h1 class="text-4xl font-extrabold text-white mb-2">500</h1>
         <h2 class="text-lg font-bold text-slate-200 mb-3">Internal Server Error</h2>
-        <p class="text-slate-400 text-xs mb-8">An unexpected server error occurred. Our automated diagnostic logging system has captured the incident.</p>
+        <p class="text-slate-400 text-xs mb-8">An unexpected server error occurred. Our automated diagnostic logging
+            system has captured the incident.</p>
         <a href="{{ url_for('main.index') }}" class="btn-primary px-6 py-3 text-xs">
             <i class="fa-solid fa-house mr-1.5"></i> Return to Homepage
         </a>

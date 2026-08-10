@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Use Case - Gen Pure Vision{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-16">
+    <div class="glass-card p-8 relative overflow-hidden">
+        <div class="text-center mb-8">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-4">
+                <i class="fa-solid fa-seedling text-2xl text-emerald-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white">Select Your Use Case</h2>
+            <p class="text-slate-400 text-xs mt-1">Help us customize your workspace experience on Gen Pure Vision.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('main.customer_use_case') }}" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
+            <div class="space-y-3">
+                <!-- Seed Producer -->
+                <label class="flex items-center gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all duration-200 group">
+                    <input type="radio" name="useCase" value="Seed Producer" required class="w-4 h-4 text-emerald-500 bg-slate-950 border-slate-800 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-offset-transparent">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">Seed Producer</span>
+                        <span class="text-xs text-slate-400">Breeding, hybrid production, and commercial lot testing.</span>
+                    </div>
+                </label>
+
+                <!-- Research Institution -->
+                <label class="flex items-center gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all duration-200 group">
+                    <input type="radio" name="useCase" value="Research Institution" class="w-4 h-4 text-emerald-500 bg-slate-950 border-slate-800 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-offset-transparent">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">Research Institution</span>
+                        <span class="text-xs text-slate-400">Academic studies, genetic markers, and cultivar development trials.</span>
+                    </div>
+                </label>
+
+                <!-- Agricultural Company -->
+                <label class="flex items-center gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all duration-200 group">
+                    <input type="radio" name="useCase" value="Agricultural Company" class="w-4 h-4 text-emerald-500 bg-slate-950 border-slate-800 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-offset-transparent">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">Agricultural Company</span>
+                        <span class="text-xs text-slate-400">Precision agronomy, field advisory services, and farming applications.</span>
+                    </div>
+                </label>
+
+                <!-- Quality Testing Laboratory -->
+                <label class="flex items-center gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all duration-200 group">
+                    <input type="radio" name="useCase" value="Quality Testing Laboratory" class="w-4 h-4 text-emerald-500 bg-slate-950 border-slate-800 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-offset-transparent">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">Quality Testing Laboratory</span>
+                        <span class="text-xs text-slate-400">Independent purity certifications and commercial analytical checks.</span>
+                    </div>
+                </label>
+
+                <!-- Other -->
+                <label class="flex items-center gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all duration-200 group">
+                    <input type="radio" id="radio-other" name="useCase" value="Other" class="w-4 h-4 text-emerald-500 bg-slate-950 border-slate-800 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-offset-transparent">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">Other</span>
+                        <span class="text-xs text-slate-400">Custom business applications or other crop monitoring operations.</span>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Custom Use Case Text Input (shown only when Other is selected) -->
+            <div id="custom-usecase-container" class="hidden transition-all duration-300">
+                <label for="customUseCase" class="form-label">Please specify your use case</label>
+                <input type="text" id="customUseCase" name="customUseCase" class="form-input" placeholder="e.g. Independent Crop Auditor">
+            </div>
+
+            <button type="submit" class="btn-primary w-full py-3.5 text-sm font-semibold shadow-lg shadow-emerald-500/25 mt-4">
+                <i class="fa-solid fa-circle-check mr-2"></i> Register Use Case
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('input[name="useCase"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const container = document.getElementById('custom-usecase-container');
+            const customInput = document.getElementById('customUseCase');
+            if (document.getElementById('radio-other').checked) {
+                container.classList.remove('hidden');
+                customInput.setAttribute('required', 'required');
+            } else {
+                container.classList.add('hidden');
+                customInput.removeAttribute('required');
+                customInput.value = '';
+            }
+        });
+    });
+</script>
+{% endblock %}

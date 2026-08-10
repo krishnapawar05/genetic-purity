@@ -11,12 +11,16 @@ class User(UserMixin):
         self.firstName = user_doc.get('firstName', '')
         self.lastName = user_doc.get('lastName', '')
         self.mobileNumber = user_doc.get('mobileNumber', '')
+        self.countryCode = user_doc.get('countryCode', '')
+        self.username = user_doc.get('username', '')
         self.email = user_doc.get('email', '')
         self.passwordHash = user_doc.get('passwordHash', '')
         self.createdAt = user_doc.get('createdAt')
         self.updatedAt = user_doc.get('updatedAt')
         self.isVerified = user_doc.get('isVerified', False)
         self.role = user_doc.get('role', 'user')
+        self.customerUseCase = user_doc.get('customerUseCase', '')
+        self.lastLogin = user_doc.get('lastLogin')
 
     def get_id(self):
         return self.id
@@ -58,38 +62,95 @@ class User(UserMixin):
         return cls(doc) if doc else None
 
     @classmethod
-    def get_by_mobile(cls, mobile: str):
+    def get_by_username(cls, username: str):
+        if not username:
+            return None
+        doc = get_users_collection().find_one({'username': username.strip().lower()})
+        return cls(doc) if doc else None
+
+    @classmethod
+    def get_by_mobile(cls, mobile: str, country_code: str = ''):
         if not mobile:
             return None
         clean_mobile = mobile.strip().replace(" ", "").replace("-", "")
+        
+        # Clean country code from start of mobile if it was prepended
+        if country_code:
+            cc_clean = country_code.strip().replace("+", "")
+            if clean_mobile.startswith(country_code):
+                clean_mobile = clean_mobile[len(country_code):]
+            elif clean_mobile.startswith("+" + cc_clean):
+                clean_mobile = clean_mobile[len("+" + cc_clean):]
+            elif clean_mobile.startswith(cc_clean):
+                clean_mobile = clean_mobile[len(cc_clean):]
+
+        # Try finding by combination of country code and mobile number
+        if country_code:
+            doc = get_users_collection().find_one({
+                'countryCode': country_code,
+                'mobileNumber': clean_mobile
+            })
+            if doc:
+                return cls(doc)
+
+        # Fallback to direct search by mobileNumber field
         doc = get_users_collection().find_one({'mobileNumber': clean_mobile})
-        return cls(doc) if doc else None
+        if doc:
+            return cls(doc)
+
+        # Try searching by combining and matching variations
+        if country_code:
+            combined = (country_code + clean_mobile).replace("+", "")
+            doc = get_users_collection().find_one({
+                '$or': [
+                    {'mobileNumber': country_code + clean_mobile},
+                    {'mobileNumber': combined},
+                    {'mobileNumber': "+" + combined}
+                ]
+            })
+            return cls(doc) if doc else None
+
+        return None
 
     @classmethod
     def get_by_email_or_mobile(cls, identifier: str):
         if not identifier:
             return None
         clean_id = identifier.strip()
-        # Clean mobile representation
         clean_mobile = clean_id.replace(" ", "").replace("-", "")
         doc = get_users_collection().find_one({
             '$or': [
                 {'email': clean_id.lower()},
-                {'mobileNumber': clean_mobile}
+                {'mobileNumber': clean_mobile},
+                {'username': clean_id.lower()}
             ]
         })
         return cls(doc) if doc else None
 
     @classmethod
-    def create_user(cls, first_name: str, last_name: str, mobile: str, email: str, password: str, role: str = 'user'):
+    def create_user(cls, first_name: str, last_name: str, mobile: str, email: str, password: str, username: str = '', country_code: str = '', role: str = 'user'):
         clean_email = email.strip().lower()
         clean_mobile = mobile.strip().replace(" ", "").replace("-", "")
+        clean_username = username.strip().lower() if username else ""
+        
+        # Strip country code from start of mobile if it was prepended
+        if country_code:
+            cc_clean = country_code.strip().replace("+", "")
+            if clean_mobile.startswith(country_code):
+                clean_mobile = clean_mobile[len(country_code):]
+            elif clean_mobile.startswith("+" + cc_clean):
+                clean_mobile = clean_mobile[len("+" + cc_clean):]
+            elif clean_mobile.startswith(cc_clean):
+                clean_mobile = clean_mobile[len(cc_clean):]
+                
         now = datetime.utcnow()
         
         doc = {
             'firstName': first_name.strip(),
             'lastName': last_name.strip(),
             'mobileNumber': clean_mobile,
+            'countryCode': country_code.strip(),
+            'username': clean_username,
             'email': clean_email,
             'passwordHash': cls.hash_password(password),
             'createdAt': now,
@@ -116,5 +177,16 @@ class User(UserMixin):
                 }
             )
             return result.modified_count > 0
+        except Exception:
+            return False
+
+    @classmethod
+    def update_last_login(cls, user_id: str):
+        try:
+            get_users_collection().update_one(
+                {'_id': ObjectId(user_id)},
+                {'$set': {'lastLogin': datetime.utcnow()}}
+            )
+            return True
         except Exception:
             return False

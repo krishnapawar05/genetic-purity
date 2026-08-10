@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Screening History - Gen Pure Vision{% endblock %}
+
+{% block extra_css %}
+<style>
+    .month-content {
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-800/80 pb-6 mb-8">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                <i class="fa-solid fa-clock-rotate-left"></i> Screening Archive
+            </div>
+            <h1 class="text-4xl font-extrabold text-white tracking-tight">Screening History</h1>
+            <p class="text-slate-400 text-sm mt-1">Access your complete genetic purity testing history structured chronologically.</p>
+        </div>
+        <div class="glass-card px-6 py-3 border-slate-800 text-left sm:text-right h-fit w-fit shadow-lg shadow-emerald-500/5">
+            <span class="text-xs text-slate-400 block font-semibold uppercase tracking-wider">Total Scans</span>
+            <span class="text-3xl font-extrabold text-emerald-400 font-mono">{{ total_records }}</span>
+        </div>
+    </div>
+
+    {% if grouped_history %}
+        <div class="space-y-10">
+            {% for year, months in grouped_history.items() %}
+                <div class="space-y-6">
+                    <!-- Year Heading -->
+                    <div class="flex items-center gap-4">
+                        <h2 class="text-3xl font-black text-white font-mono tracking-tight">{{ year }}</h2>
+                        <div class="h-[1px] flex-grow bg-gradient-to-r from-slate-800 to-transparent"></div>
+                    </div>
+
+                    <div class="space-y-6">
+                        {% for month, records in months.items() %}
+                            <!-- Month Container -->
+                            <div class="glass-card overflow-hidden border border-slate-800/80 transition-all duration-300 rounded-xl" id="month-{{ year }}-{{ month }}">
+                                <!-- Month Header (Toggle trigger) -->
+                                <button class="w-full flex items-center justify-between p-6 bg-slate-900/40 hover:bg-slate-900/80 transition-colors text-left focus:outline-none toggle-month-btn" data-target="content-{{ year }}-{{ month }}">
+                                    <div class="flex items-center gap-4">
+                                        <i class="fa-solid fa-chevron-down text-sm text-slate-400 transition-transform duration-300 transform" id="arrow-{{ year }}-{{ month }}"></i>
+                                        <span class="text-xl font-bold text-white tracking-tight">{{ month }}</span>
+                                        <span class="px-3 py-1 text-xs font-mono font-bold rounded-full bg-slate-800 text-emerald-400 border border-slate-700/50">
+                                            {{ records | length }} test{% if records|length > 1 %}s{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-slate-500 uppercase tracking-widest font-mono hidden sm:block">Click to collapse/expand</div>
+                                </button>
+
+                                <!-- Month Content (Collapsible list) -->
+                                <div class="month-content p-6 border-t border-slate-800/60" id="content-{{ year }}-{{ month }}" style="max-height: none;">
+                                    <!-- Vertical Timeline -->
+                                    <div class="relative border-l-2 border-slate-800/80 ml-4 sm:ml-8 pl-8 sm:pl-10 space-y-6">
+                                        {% for item in records %}
+                                            <div class="relative group">
+                                                <!-- Timeline Bullet / Icon -->
+                                                <span class="absolute -left-[41px] sm:-left-[49px] top-4 w-5 h-5 rounded-full bg-[#0b0f19] border-4 border-emerald-500 group-hover:scale-110 transition-transform shadow-lg shadow-emerald-500/20">
+                                                </span>
+
+                                                <!-- Timeline Card -->
+                                                <div class="glass-card p-6 border-slate-800/80 hover:border-emerald-500/30 transition-all duration-300 bg-slate-950/20 shadow-md">
+                                                    <!-- Details Grid (12 Columns) -->
+                                                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                                                        
+                                                        <!-- ID & Date -->
+                                                        <div class="md:col-span-3 space-y-1">
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded border border-emerald-500/20">
+                                                                    #GPV-{{ item.id | string | truncate(8, True, '') | upper }}
+                                                                </span>
+                                                            </div>
+                                                            <span class="text-xs text-slate-400 font-mono block">
+                                                                <i class="fa-regular fa-clock mr-1 text-slate-500"></i>
+                                                                {{ item.createdAt | format_datetime }}
+                                                            </span>
+                                                        </div>
+
+                                                        <!-- Specimen Name & Plant Type -->
+                                                        <div class="md:col-span-3 space-y-1">
+                                                            <span class="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">Specimen</span>
+                                                            <span class="text-sm font-mono text-slate-300 block truncate" title="{{ item.filename }}">
+                                                                {{ item.filename }}
+                                                            </span>
+                                                            <span class="text-xs text-slate-400 block">
+                                                                Type: <strong class="text-slate-200">{{ item.prediction }}</strong>
+                                                            </span>
+                                                        </div>
+
+                                                        <!-- Verdict & Confidence -->
+                                                        <div class="md:col-span-3 flex items-center justify-between md:justify-start gap-8">
+                                                            <div>
+                                                                <span class="text-[10px] text-slate-500 uppercase tracking-wider block font-bold mb-1">Verdict</span>
+                                                                {% if item.purity.lower().startswith('pure') and item.prediction != 'UNKNOWN' %}
+                                                                    <span class="px-3 py-1 rounded text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wide">
+                                                                        PURE
+                                                                    </span>
+                                                                {% elif item.prediction == 'UNKNOWN' or 'unknown' in item.purity.lower() %}
+                                                                    <span class="px-3 py-1 rounded text-[10px] font-extrabold bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wide">
+                                                                        UNKNOWN
+                                                                    </span>
+                                                                {% else %}
+                                                                    <span class="px-3 py-1 rounded text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/30 uppercase tracking-wide">
+                                                                        IMPURE
+                                                                    </span>
+                                                                {% endif %}
+                                                            </div>
+                                                            <div>
+                                                                <span class="text-[10px] text-slate-500 uppercase tracking-wider block font-bold mb-0.5">Confidence</span>
+                                                                <span class="text-sm text-slate-200 font-bold font-mono">{{ item.confidence }}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Actions -->
+                                                        <div class="md:col-span-3 flex items-center justify-end gap-3 pt-4 md:pt-0 border-t border-slate-800/80 md:border-none">
+                                                            <a href="{{ url_for('main.view_result', prediction_id=item.id) }}" class="btn-secondary text-xs px-4 py-2 flex items-center gap-1.5 hover:text-emerald-400">
+                                                                <i class="fa-solid fa-eye"></i> View Report
+                                                            </a>
+                                                            <a href="{{ url_for('main.download_report', prediction_id=item.id) }}" class="btn-primary text-xs px-4 py-2 flex items-center gap-1.5 shadow-md shadow-emerald-500/10">
+                                                                <i class="fa-solid fa-file-pdf"></i> Download PDF
+                                                            </a>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="glass-card p-16 text-center">
+            <div class="w-16 h-16 mx-auto rounded-full bg-slate-900 flex items-center justify-center text-slate-500 mb-4 border border-slate-800">
+                <i class="fa-solid fa-clock-rotate-left text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">No screening history found</h3>
+            <p class="text-slate-400 text-sm max-w-sm mx-auto mb-6">You haven't run any crop specimen analyses yet. Run a purity test to start logging history.</p>
+            <a href="{{ url_for('main.test_purity') }}" class="btn-primary text-sm px-6 py-3 font-semibold">
+                Start First Test
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggleButtons = document.querySelectorAll('.toggle-month-btn');
+        
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.getAttribute('data-target');
+                const contentDiv = document.getElementById(targetId);
+                const arrowIcon = button.querySelector('.fa-chevron-down');
+                
+                // If style.maxHeight is none, set it to scrollHeight first to allow transition
+                if (contentDiv.style.maxHeight === 'none' || contentDiv.style.maxHeight === '') {
+                    contentDiv.style.maxHeight = contentDiv.scrollHeight + 'px';
+                    // Force reflow
+                    contentDiv.offsetHeight;
+                }
+                
+                const isCollapsed = contentDiv.style.maxHeight === '0px';
+                
+                if (isCollapsed) {
+                    // Expand
+                    contentDiv.style.maxHeight = contentDiv.scrollHeight + 'px';
+                    arrowIcon.style.transform = 'rotate(0deg)';
+                    // After transition completes, set maxHeight to 'none' so layout stays responsive
+                    setTimeout(() => {
+                        if (contentDiv.style.maxHeight !== '0px') {
+                            contentDiv.style.maxHeight = 'none';
+                        }
+                    }, 300);
+                } else {
+                    // Collapse
+                    contentDiv.style.maxHeight = contentDiv.scrollHeight + 'px';
+                    contentDiv.offsetHeight; // Force reflow
+                    contentDiv.style.maxHeight = '0px';
+                    arrowIcon.style.transform = 'rotate(-90deg)';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

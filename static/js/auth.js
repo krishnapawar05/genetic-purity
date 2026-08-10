@@ -15,9 +15,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const matchError = document.getElementById('match-error');
 
         // Password Strength Meter
-        if (passwordInput && strengthBar) {
+        const strengthContainer = document.getElementById('strength-meter-container');
+        if (passwordInput && strengthBar && strengthContainer) {
             passwordInput.addEventListener('input', () => {
                 const val = passwordInput.value;
+                if (!val) {
+                    strengthContainer.classList.add('hidden');
+                    return;
+                }
+                strengthContainer.classList.remove('hidden');
+                
                 let score = 0;
                 
                 if (val.length >= 8) score++;

@@ -85,3 +85,34 @@ class PaymentService:
                 return False, "Invalid signature. Potential fake payment callback detected!"
         except Exception as err:
             return False, f"Signature calculation error: {str(err)}"
+
+    @classmethod
+    def verify_order_status(cls, order_id: str) -> str:
+        """
+        Queries Razorpay API to check the actual status of an order.
+        Returns 'paid', 'failed', or 'created' (pending).
+        """
+        if not order_id or order_id.startswith("order_dev_"):
+            return "created"
+
+        client = cls.get_razorpay_client()
+        if client:
+            try:
+                order = client.order.fetch(order_id)
+                status = order.get('status')
+                if status == 'paid':
+                    return 'paid'
+                elif status in ['attempted', 'created']:
+                    try:
+                        payments = client.order.payments(order_id)
+                        items = payments.get('items', [])
+                        if any(p.get('status') == 'captured' for p in items):
+                            return 'paid'
+                        if items and all(p.get('status') in ['failed', 'cancelled'] for p in items):
+                            return 'failed'
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"[Razorpay status check error for {order_id}]: {e}", file=sys.stderr)
+        return "created"
+

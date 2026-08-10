@@ -112,7 +112,7 @@
 
     <!-- Results Card (Initially Hidden) -->
     <div id="resultsCard" class="hidden glass-card p-8 transition-all duration-500">
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-6 mb-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-6 mb-6">
             <div class="flex items-center gap-3">
                 <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
                     <i class="fa-solid fa-square-poll-vertical text-xl text-emerald-400"></i>
@@ -125,15 +125,16 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-6 text-xs text-slate-400 font-mono">
+            <div class="flex flex-wrap items-center gap-6 text-xs text-slate-400 font-mono">
+                <div>Report Date: <span id="resDate" class="text-emerald-400 font-bold"></span></div>
                 <div>Execution Time: <span id="resTime" class="text-white font-bold"></span></div>
             </div>
         </div>
 
-        <!-- Details Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-8">
-            <!-- Left Summary & Reasoning -->
-            <div class="space-y-4">
+        <!-- Details Grid (Aligned 2-column layout) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch mb-8">
+            <!-- Left Summary & Reasoning Cards -->
+            <div class="space-y-4 flex flex-col justify-between">
                 <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
                     <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold mb-1">Predicted Plant Variant</span>
                     <div id="resPredictedClass" class="text-xl font-bold text-emerald-400 font-mono"></div>
@@ -144,18 +145,18 @@
                     <div id="resConfidence" class="text-xl font-bold text-white font-mono"></div>
                 </div>
 
-                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 flex-1">
                     <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold mb-1">Diagnostic Reasoning</span>
                     <div id="resReason" class="text-sm text-slate-300"></div>
                 </div>
             </div>
 
-            <!-- Right Visualization Chart -->
-            <div class="flex flex-col items-center justify-center p-4 bg-slate-950/80 rounded-xl border border-slate-800 relative">
+            <!-- Right Visualization Chart Card -->
+            <div class="h-full flex flex-col items-center justify-center p-6 bg-slate-950/80 rounded-xl border border-slate-800 relative">
                 <div class="w-48 h-48 relative">
                     <canvas id="purityChart"></canvas>
                 </div>
-                <div class="flex items-center gap-6 mt-4 text-xs font-mono">
+                <div class="flex items-center gap-6 mt-6 text-xs font-mono">
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
                         <span class="text-slate-300">Pure: <span id="legendPureVal" class="text-white font-bold"></span></span>

@@ -559,7 +559,8 @@ def verify_payment():
             "confidence": result["confidence"],
             "probabilities": probabilities_scaled,
             "reason": result["reason"],
-            "prediction_time": result["prediction_time"]
+            "prediction_time": result["prediction_time"],
+            "created_at": format_datetime(pred_record.createdAt)
         }
 
         return jsonify(parsed_data)

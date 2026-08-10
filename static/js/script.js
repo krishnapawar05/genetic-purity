@@ -484,6 +484,11 @@ document.addEventListener("DOMContentLoaded", () => {
         resTime.textContent = result.prediction_time;
         resReason.textContent = result.reason;
         
+        const resDate = document.getElementById("resDate");
+        if (resDate && result.created_at) {
+            resDate.textContent = result.created_at;
+        }
+        
         // Extract raw probability percentages (Female, Hybrid, Male)
         const femaleVal = result.probabilities.female || 0;
         const hybridVal = result.probabilities.hybrid || 0;

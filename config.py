@@ -2,7 +2,6 @@ import os
 import sys
 from datetime import timedelta
 from dotenv import load_dotenv
-
 # Load environment variables from .env file before reading
 load_dotenv(override=True)
 

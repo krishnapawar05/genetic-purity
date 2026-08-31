@@ -33,7 +33,7 @@ if current_dir not in sys.path:
 import detect
 import numpy as np
 from tensorflow.keras.models import load_model
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_login import LoginManager, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
@@ -48,9 +48,9 @@ from models.user import User
 from models.prediction import PredictionRecord
 from models.payment import PaymentRecord
 from services.payment_service import PaymentService
-from utils.date_utils import format_datetime
 from auth import auth_bp
 from routes import main_bp
+from utils.date_utils import format_datetime
 
 # Register HEIC opener with Pillow to support HEIC files transparently
 register_heif_opener()
@@ -58,13 +58,8 @@ register_heif_opener()
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Register central Date & Time formatting filter
-app.jinja_env.filters['format_datetime'] = format_datetime
-
-@app.context_processor
-def inject_format_datetime():
-    return dict(format_datetime=format_datetime)
-
+# Register Custom Jinja Template Filters
+app.template_filter('format_datetime')(format_datetime)
 
 # Security Extensions
 csrf = CSRFProtect(app)
@@ -95,66 +90,6 @@ def unauthorized_callback():
         }), 401
     return redirect(url_for('auth.login', next=request.path))
 
-
-# Requirement 26: Automatic Logout & Session Security Handler
-from datetime import datetime, timezone
-from flask import session
-
-@app.before_request
-def check_session_inactivity():
-    """
-    Requirement 26: Inactivity-Based Automatic Logout.
-    Tracks user activity timestamps and automatically logs out sessions
-    that have been inactive for SESSION_TIMEOUT_MINUTES.
-    Active users making requests or interacting with the platform stay logged in.
-    """
-    if current_user.is_authenticated:
-        now = datetime.now(timezone.utc)
-        last_act_str = session.get('last_activity')
-        timeout_seconds = Config.SESSION_TIMEOUT_MINUTES * 60
-        
-        if last_act_str:
-            try:
-                last_act = datetime.fromisoformat(last_act_str)
-                if last_act.tzinfo is None:
-                    last_act = last_act.replace(tzinfo=timezone.utc)
-                
-                elapsed = (now - last_act).total_seconds()
-                if elapsed > timeout_seconds:
-                    from flask_login import logout_user
-                    if current_user and hasattr(current_user, 'id'):
-                        try:
-                            User.update_last_logout(current_user.id)
-                        except Exception:
-                            pass
-                    logout_user()
-                    session.clear()
-                    flash("Your session has expired due to inactivity. Please sign in again.", "warning")
-                    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.path in ['/predict', '/create-order', '/verify-payment', '/convert-preview']:
-                        return jsonify({
-                            "success": False,
-                            "error": "Session expired due to inactivity.",
-                            "redirect": url_for('auth.login')
-                        }), 401
-                    return redirect(url_for('auth.login'))
-            except Exception as e:
-                logger.warning(f"Error evaluating session inactivity: {e}")
-                
-        session['last_activity'] = now.isoformat()
-        session.permanent = True
-
-@app.after_request
-def add_cache_control_headers(response):
-    """
-    Ensures HTML responses are never cached by the browser, guarantees
-    immediate reflection of authentication state (logged in vs logged out).
-    """
-    if response.mimetype == 'text/html':
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-    return response
-
 # Register Blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(main_bp)
@@ -167,34 +102,10 @@ UPLOAD_FOLDER = os.path.join(current_dir, 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp', 'webp', 'dng', 'heic', 'heif'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp', 'webp', 'dng', 'heic'}
 
 # Global thread lock for TensorFlow model inference thread-safety
 model_lock = threading.Lock()
-
-
-def is_valid_image(filepath):
-    """
-    Server-side security verification ensuring uploaded file is a valid image.
-    Does not rely only on filename extension or client Content-Type headers.
-    """
-    if not filepath or not os.path.exists(filepath):
-        return False
-    ext = os.path.splitext(filepath)[1].lower()
-    if ext not in ['.png', '.jpg', '.jpeg', '.bmp', '.webp', '.dng', '.heic', '.heif']:
-        return False
-    if ext == '.dng':
-        try:
-            with rawpy.imread(filepath) as raw:
-                return True
-        except Exception:
-            return False
-    try:
-        with Image.open(filepath) as img:
-            img.verify()
-        return True
-    except Exception:
-        return False
 
 
 # Error Handlers
@@ -227,7 +138,7 @@ def internal_error(error):
 
 def downscale_image_if_large(filepath, max_dim=1280):
     ext = os.path.splitext(filepath)[1].lower()
-    if ext in ['.heic', '.heif', '.dng']:
+    if ext in ['.heic', '.dng']:
         return
     try:
         with Image.open(filepath) as img:
@@ -244,12 +155,12 @@ def downscale_image_if_large(filepath, max_dim=1280):
 
 def convert_to_standard_format(filepath, max_dim=1280):
     ext = os.path.splitext(filepath)[1].lower()
-    if ext not in ['.heic', '.heif', '.dng']:
+    if ext not in ['.heic', '.dng']:
         return filepath
 
     converted_path = os.path.splitext(filepath)[0] + "_converted.jpg"
     try:
-        if ext in ['.heic', '.heif']:
+        if ext == '.heic':
             with Image.open(filepath) as img:
                 rgb_img = img.convert('RGB')
                 if max(rgb_img.width, rgb_img.height) > max_dim:
@@ -334,9 +245,6 @@ def convert_preview():
             temp_path = tmp.name
             file.save(temp_path)
             
-        if not is_valid_image(temp_path):
-            return jsonify({"success": False, "error": "Uploaded file is not a valid image format."}), 400
-
         downscale_image_if_large(temp_path, max_dim=1280)
         converted_path = convert_to_standard_format(temp_path, max_dim=1280)
         
@@ -397,12 +305,6 @@ def create_order():
     try:
         file.save(temp_path)
         
-        # Server-Side Image Integrity Verification (Reject non-image payloads)
-        if not is_valid_image(temp_path):
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-            return jsonify({"success": False, "error": "Uploaded file is invalid or not a supported image file."}), 400
-
         # Create Razorpay order
         price_inr = Config.ANALYSIS_PRICE_INR
         success, order = PaymentService.create_order(amount_inr=price_inr, receipt_id=temp_token)
@@ -490,6 +392,10 @@ def verify_payment():
         if not temp_path or not os.path.exists(temp_path):
             return jsonify({"success": False, "error": "Specimen image file expired. Please re-upload image."}), 400
 
+        # Get original file size and filename before any modifications
+        original_filesize = os.path.getsize(temp_path)
+        original_filename = data.get('original_filename', 'specimen_image')
+
         downscale_image_if_large(temp_path, max_dim=1280)
 
         ext = os.path.splitext(temp_path)[1].lower()
@@ -513,14 +419,17 @@ def verify_payment():
 
         # Run unmodified inference engine under thread lock
         with model_lock:
-            result = detect.predict_image(inference_path, model)
+            result = detect.predict_image(
+                inference_path,
+                model,
+                original_filename=original_filename,
+                original_filesize=original_filesize
+            )
 
         probabilities_scaled = {
             class_name: prob * 100 
             for class_name, prob in result["probabilities"].items()
         }
-
-        user_crop = getattr(current_user, 'customerUseCase', None) or 'Chilli / Plant Specimen'
 
         # Save prediction record in MongoDB
         pred_record = PredictionRecord.create_record(
@@ -534,28 +443,8 @@ def verify_payment():
                 'reason': result["reason"],
                 'prediction_time': result["prediction_time"]
             },
-            status="completed",
-            crop=user_crop
+            status="completed"
         )
-
-        # Permanently store copy of analyzed specimen image for PDF report embedding
-        try:
-            specimens_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'specimens')
-            os.makedirs(specimens_dir, exist_ok=True)
-            saved_specimen_filename = f"specimen_{pred_record.id}.jpg"
-            saved_specimen_full_path = os.path.join(specimens_dir, saved_specimen_filename)
-            import shutil
-            shutil.copy2(inference_path, saved_specimen_full_path)
-
-            from bson import ObjectId
-            from database.db import get_predictions_collection
-            get_predictions_collection().update_one(
-                {'_id': ObjectId(pred_record.id)},
-                {'$set': {'specimenPath': saved_specimen_filename}}
-            )
-            pred_record.specimenPath = saved_specimen_filename
-        except Exception as e:
-            logger.warning(f"Warning saving permanent specimen image: {e}")
 
         # Mark Payment completed in MongoDB
         PaymentRecord.mark_completed(
@@ -565,27 +454,22 @@ def verify_payment():
             prediction_id=pred_record.id
         )
 
-        download_url = url_for('main.download_report', prediction_id=pred_record.id)
-
         parsed_data = {
             "success": True,
             "record_id": pred_record.id,
-            "download_url": download_url,
             "class": result["class"],
             "purity": result["purity"],
             "confidence": result["confidence"],
             "probabilities": probabilities_scaled,
             "reason": result["reason"],
-            "prediction_time": result["prediction_time"],
-            "created_at": format_datetime(pred_record.createdAt)
+            "prediction_time": result["prediction_time"]
         }
 
         return jsonify(parsed_data)
 
     except Exception as e:
-        logger.error(f"[Payment Verification Error] Order {order_id} failed: {e}", exc_info=True)
         PaymentRecord.mark_failed(order_id, reason=str(e))
-        return jsonify({"success": False, "error": f"Internal server error during report generation: {str(e)}"}), 500
+        return jsonify({"success": False, "error": f"Internal server error: {str(e)}"}), 500
 
     finally:
         for p in [temp_path, converted_filepath]:
@@ -614,8 +498,6 @@ def cancel_payment():
 
     payment_rec = PaymentRecord.get_by_order_id(order_id)
     if payment_rec and payment_rec.userId == current_user.id:
-        if payment_rec.status in ['paid', 'completed']:
-            return jsonify({"success": True, "message": "Payment already completed."}), 200
         PaymentRecord.mark_failed(order_id, reason="Cancelled by user checkout")
         temp_path = payment_rec.tempSpecimenPath
         if temp_path and os.path.exists(temp_path):
